@@ -21,6 +21,9 @@ tasks:
       - task --list-all
     silent: true
 
+  build:
+    cmds:
+      - docker compose build
 
   up: 
     cmds:
@@ -28,12 +31,12 @@ tasks:
       
   down: 
     cmds:
-      - docker compose down -v 
+      - docker compose -p rusty down -v 
       
   start: 
     cmds:
-      - docker compose start
+      - docker compose -p rusty start
       
   stop: 
     cmds:
-      - docker compose stop
+      - docker compose -p rusty stop
