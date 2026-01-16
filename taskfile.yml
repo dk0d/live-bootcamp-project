@@ -5,10 +5,12 @@ version: '3'
 includes: 
   auth:
     taskfile: "./auth-service/taskfile.yml"
+    dir: "./auth-service"
     excludes: [default]
     
   app:
     taskfile: "./app-service/taskfile.yml"
+    dir: "./app-service"
     excludes: [default]
     
 
@@ -18,6 +20,7 @@ tasks:
     cmds:
       - task --list-all
     silent: true
+
 
   up: 
     cmds:

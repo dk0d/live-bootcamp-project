@@ -9,3 +9,8 @@ tasks:
     cmds:
       - task --list-all
     silent: true
+    
+  serve: 
+    desc: Run the app server
+    cmds: 
+      - cargo run
