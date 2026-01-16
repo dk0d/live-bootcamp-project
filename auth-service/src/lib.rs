@@ -9,6 +9,7 @@ use tokio::net::TcpListener;
 
 use axum::{serve::Serve, Router};
 
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 
@@ -33,27 +34,33 @@ impl Application {
     /// Returns:
     /// - `Router`: The constructed application router.
     pub async fn build_router(_config: &config::Config) -> anyhow::Result<Router> {
-        // let assets_dir = ServeDir::new("assets");
+        let assets_dir =
+            ServeDir::new("assets").not_found_service(ServeFile::new("assets/404.html"));
         let (router, api) = build_app_router().split_for_parts();
-        let router = router.merge(Scalar::with_url("/docs", api)).layer(
-            TraceLayer::new_for_http()
-                .make_span_with(|request: &axum::http::Request<_>| {
-                    tracing::span!(
-                        Level::INFO,
-                            "http_request",
-                            method = %request.method(),
-                            uri = %request.uri().path(),
-                            status = tracing::field::Empty, // Status filled later
-                            latency_us = tracing::field::Empty // Latency filled later
-                    )
-                })
-                .on_response(
-                    |resp: &axum::http::Response<_>, latency: Duration, span: &tracing::Span| {
-                        span.record("status", resp.status().as_u16());
-                        span.record("latency_us", latency.as_micros());
-                    },
-                ),
-        );
+        let router = router
+            .fallback_service(assets_dir)
+            .merge(Scalar::with_url("/docs", api))
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(|request: &axum::http::Request<_>| {
+                        tracing::span!(
+                            Level::INFO,
+                                "http_request",
+                                method = %request.method(),
+                                uri = %request.uri().path(),
+                                status = tracing::field::Empty, // Status filled later
+                                latency_us = tracing::field::Empty // Latency filled later
+                        )
+                    })
+                    .on_response(
+                        |resp: &axum::http::Response<_>,
+                         latency: Duration,
+                         span: &tracing::Span| {
+                            span.record("status", resp.status().as_u16());
+                            span.record("latency_us", latency.as_micros());
+                        },
+                    ),
+            );
         Ok(router)
     }
 
