@@ -1,14 +1,18 @@
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, Debug)]
 pub struct TelemetryConfig {
     #[serde(default = "default_false")]
     pub enabled: bool,
 }
 
-fn default_false() -> bool {
-    false
+impl Default for TelemetryConfig {
+    fn default() -> Self {
+        TelemetryConfig {
+            enabled: default_false(),
+        }
+    }
 }
 
-#[derive(serde::Deserialize, PartialEq, Eq, Clone, Default)]
+#[derive(serde::Deserialize, PartialEq, Eq, Clone, Default, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum ServerEnv {
     #[default]
@@ -16,13 +20,28 @@ pub enum ServerEnv {
     Production,
 }
 
-#[derive(serde::Deserialize, Default)]
-pub struct Config {
-    #[serde(default = "default_url")]
-    pub url: String,
+#[derive(serde::Deserialize, Debug)]
+pub struct ServerConfig {
+    #[serde(default = "default_server_host")]
+    pub host: String,
 
-    #[serde(default = "default_port")]
+    #[serde(default = "default_server_port")]
     pub port: u16,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        ServerConfig {
+            host: default_server_host(),
+            port: default_server_port(),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Default, Debug)]
+pub struct Config {
+    #[serde(default = "ServerConfig::default")]
+    pub server: ServerConfig,
 
     #[serde(default = "TelemetryConfig::default")]
     pub telemetry: TelemetryConfig,
@@ -31,10 +50,18 @@ pub struct Config {
     pub env: ServerEnv,
 }
 
-fn default_url() -> String {
-    "http://localhost:3000".to_string()
+fn default_server_host() -> String {
+    "0.0.0.0".to_string()
 }
 
-fn default_port() -> u16 {
+fn default_server_port() -> u16 {
     3000
+}
+
+fn default_false() -> bool {
+    false
+}
+
+fn default_true() -> bool {
+    true
 }
