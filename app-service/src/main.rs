@@ -2,7 +2,7 @@ use figment::{
     Figment,
     providers::{Env, Format, Toml},
 };
-use libapp::{Config, create_app, logging};
+use libapp::{Config, build_app_router, logging};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
 
     logging::init(&config)?;
 
-    let app = create_app();
+    let app = build_app_router();
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))
         .await

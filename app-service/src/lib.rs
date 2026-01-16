@@ -82,7 +82,7 @@ pub struct ProtectedRouteResponse {
     pub img_url: String,
 }
 
-pub fn create_app() -> Router {
+pub fn build_app_router() -> Router {
     Router::new()
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/", get(root))

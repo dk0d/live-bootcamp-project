@@ -1,3 +1,4 @@
+use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::{response::IntoResponse, Json};
 use tracing::instrument;
@@ -54,12 +55,15 @@ pub async fn root() -> impl IntoResponse {
     (StatusCode::OK, "AuthX.rs").into_response()
 }
 
-/// Home
-#[utoipa::path(get, path = "/hello")]
+/// Hello World
+#[utoipa::path(get, path = "/hello/{name}", tag = "Greeting")]
 #[instrument]
-async fn hello_handler() -> Html<&'static str> {
-    // TODO: Update this to a custom message!
-    Html("<h1>Hello, World!</h1>")
+async fn hello_handler(Path(name): Path<String>) -> impl IntoResponse {
+    let name = if name.is_empty() { "World" } else { &name };
+    Html(format!(
+        "<h1>Hello {}!</h1><div>Welcome to AuthX.rs</div>",
+        name
+    ))
 }
 
 pub fn build_app_router() -> OpenApiRouter {
