@@ -66,11 +66,91 @@ async fn hello_handler(Path(name): Path<String>) -> impl IntoResponse {
     ))
 }
 
+#[utoipa::path(
+    post,
+    path = "/login",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "Login successful"),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+#[instrument]
+async fn login_handler() -> impl IntoResponse {
+    // Placeholder for login logic
+    (StatusCode::OK, "Login successful").into_response()
+}
+
+#[utoipa::path(
+    post,
+    path = "/signup",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "Signup successful"),
+        (status = 400, description = "Bad Request")
+    )
+)]
+#[instrument]
+async fn signup_handler() -> impl IntoResponse {
+    // Placeholder for signup logic
+    (StatusCode::OK, "Signup successful").into_response()
+}
+
+#[utoipa::path(
+    post,
+    path = "/logout",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "Logout successful"),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+#[instrument]
+async fn logout_handler() -> impl IntoResponse {
+    // Placeholder for logout logic
+    (StatusCode::OK, "Logout successful").into_response()
+}
+
+#[utoipa::path(
+    post,
+    path = "/verify-2fa",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "2FA verification successful"),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+#[instrument]
+async fn verify_2fa_handler() -> impl IntoResponse {
+    // Placeholder for 2FA verification logic
+    (StatusCode::OK, "2FA verification successful").into_response()
+}
+
+#[utoipa::path(
+    post,
+    path = "/verify-token",
+    tag = "Authentication",
+    responses(
+        (status = 200, description = "Token verification successful"),
+        (status = 401, description = "Unauthorized")
+    )
+)]
+#[instrument]
+async fn verify_token_handler() -> impl IntoResponse {
+    // Placeholder for token verification logic
+    (StatusCode::OK, "Token verification successful").into_response()
+}
+
 pub fn build_app_router() -> OpenApiRouter {
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(root))
         .routes(routes!(hello_handler))
         .routes(routes!(healthz))
         .routes(routes!(livez))
+        .routes(routes!(login_handler))
+        .routes(routes!(signup_handler))
+        .routes(routes!(logout_handler))
+        .routes(routes!(verify_2fa_handler))
+        .routes(routes!(verify_token_handler))
         .routes(routes!(readyz))
 }

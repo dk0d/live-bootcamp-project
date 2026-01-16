@@ -1,8 +1,10 @@
 #![allow(dead_code)]
 
+use axum::response::IntoResponse;
 use axum_test::TestResponse;
 use libauth_service::config::Config;
 use libauth_service::Application;
+use reqwest::StatusCode;
 
 pub struct TestServer {
     pub address: String,
@@ -47,6 +49,46 @@ impl TestServer {
             .await
             .expect("Failed to send GET request to /livez.")
     }
+
+    pub async fn post_login(&self) -> impl IntoResponse {
+        self.http_client
+            .post(format!("{}/login", &self.address))
+            .send()
+            .await
+            .expect("Failed to send POST request to /login.");
+    }
+
+    pub async fn post_signup(&self) -> impl IntoResponse {
+        self.http_client
+            .post(format!("{}/signup", &self.address))
+            .send()
+            .await
+            .expect("Failed to send POST request to /signup.");
+    }
+
+    pub async fn post_logout(&self) -> impl IntoResponse {
+        self.http_client
+            .post(format!("{}/logout", &self.address))
+            .send()
+            .await
+            .expect("Failed to send POST request to /logout.");
+    }
+
+    pub async fn post_verify_2fa(&self) -> impl IntoResponse {
+        self.http_client
+            .post(format!("{}/verify-2fa", &self.address))
+            .send()
+            .await
+            .expect("Failed to send POST request to /verify-2fa.");
+    }
+
+    pub async fn post_verify_token(&self) -> impl IntoResponse {
+        self.http_client
+            .post(format!("{}/verify-token", &self.address))
+            .send()
+            .await
+            .expect("Failed to send POST request to /verify-token.");
+    }
 }
 
 /// Alternative TestApp using `axum_test` for making requests directly to the app router
@@ -76,5 +118,29 @@ impl TestApp {
 
     pub async fn get_livez(&self) -> TestResponse {
         self.server.get("/livez").await
+    }
+
+    pub async fn get_healthz(&self) -> TestResponse {
+        self.server.get("/healthz").await
+    }
+
+    pub async fn post_login(&self) -> TestResponse {
+        self.server.post("/login").await
+    }
+
+    pub async fn post_signup(&self) -> TestResponse {
+        self.server.post("/signup").await
+    }
+
+    pub async fn post_logout(&self) -> TestResponse {
+        self.server.post("/logout").await
+    }
+
+    pub async fn post_verify_2fa(&self) -> TestResponse {
+        self.server.post("/verify-2fa").await
+    }
+
+    pub async fn post_verify_token(&self) -> TestResponse {
+        self.server.post("/verify-token").await
     }
 }

@@ -58,3 +58,39 @@ async fn test_livez_returns_ok_app() {
     );
     assert_eq!(body.get("status").unwrap(), "Alive");
 }
+
+#[tokio::test]
+async fn test_login() {
+    let response = TestApp::new(&Config::default()).await.post_login().await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_signup() {
+    let response = TestApp::new(&Config::default()).await.post_signup().await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_logout() {
+    let response = TestApp::new(&Config::default()).await.post_logout().await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_verify_2fa() {
+    let response = TestApp::new(&Config::default())
+        .await
+        .post_verify_2fa()
+        .await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_verify_token() {
+    let response = TestApp::new(&Config::default())
+        .await
+        .post_verify_token()
+        .await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::OK);
+}
