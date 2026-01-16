@@ -14,11 +14,9 @@ tasks:
     desc: Run the auth server
     cmds: 
       - cargo run
-
-
       
   watch:
     desc: Run auth server and re-compile on change
     cmds:
-      - cargo watch -q -c -w src/ -w assets/ -x run
+      - cargo watch -q -c -w src/ -w assets/ -w default.toml -w -x run 
 

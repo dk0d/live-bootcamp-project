@@ -1,2 +1,6 @@
-url = 'http://localhost'
+# development  | production
+env = 'development'
+
+[server]
+host = '0.0.0.0'
 port = 5170
