@@ -52,7 +52,7 @@ pub async fn readyz() -> impl IntoResponse {
 #[utoipa::path(get, path = "/")]
 #[instrument]
 pub async fn root() -> impl IntoResponse {
-    (StatusCode::OK, "AuthX.rs").into_response()
+    Html("<h1>AuthX.rs</h1>")
 }
 
 /// Hello World
