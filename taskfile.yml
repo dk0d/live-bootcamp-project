@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+includes: 
+  auth:
+    taskfile: "./auth-service/taskfile.yml"
+    excludes: [default]
+    
+  app:
+    taskfile: "./app-service/taskfile.yml"
+    excludes: [default]
+    
+
+tasks:
+  default:
+    desc: List all tasks
+    cmds:
+      - task --list-all
+    silent: true
+
+  up: 
+    cmds:
+      - docker compose -p rusty up -d 
+      
+  down: 
+    cmds:
+      - docker compose down -v 
+      
+  start: 
+    cmds:
+      - docker compose start
+      
+  stop: 
+    cmds:
+      - docker compose stop
