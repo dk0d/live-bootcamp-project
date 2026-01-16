@@ -1,23 +1,32 @@
-use axum::{response::Html, routing::get, serve, Router};
-use tower_http::services::ServeDir;
+use libauth_service::logging;
+use libauth_service::{build_router, config};
+
+use figment::{
+    providers::{Env, Format, Toml},
+    Figment,
+};
 
 #[tokio::main]
-async fn main() {
-    let assets_dir = ServeDir::new("assets");
-    let app = Router::new()
-        .fallback_service(assets_dir)
-        .route("/hello", get(hello_handler));
+async fn main() -> anyhow::Result<()> {
+    let config: config::Config = Figment::new()
+        .merge(Toml::file("default.toml"))
+        .merge(Env::prefixed("LR__"))
+        .extract()?;
+
+    logging::init(&config)?;
+
+    let app = build_router(&config).await?;
 
     // Here we are using ip 0.0.0.0 so the service is listening on all the configured network interfaces.
     // This is needed for Docker to work, which we will add later on.
     // See: https://stackoverflow.com/questions/39525820/docker-port-forwarding-not-working
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("listening on {}", listener.local_addr().unwrap());
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))
+        .await
+        .unwrap();
+
+    tracing::info!("listening on {}", listener.local_addr().unwrap());
 
     axum::serve(listener, app).await.unwrap();
-}
 
-async fn hello_handler() -> Html<&'static str> {
-    // TODO: Update this to a custom message!
-    Html("<h1>Hello, World!</h1>")
+    Ok(())
 }
