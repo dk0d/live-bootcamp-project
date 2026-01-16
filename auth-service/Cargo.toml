@@ -44,3 +44,4 @@ sqlx = { version = "0.8.6", features = [
   "runtime-tokio",
   "chrono",
 ] }
+dotenvy = "0.15.7"
