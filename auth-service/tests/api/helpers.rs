@@ -4,7 +4,6 @@ use axum::response::IntoResponse;
 use axum_test::TestResponse;
 use libauth_service::config::Config;
 use libauth_service::Application;
-use reqwest::StatusCode;
 
 pub struct TestServer {
     pub address: String,
