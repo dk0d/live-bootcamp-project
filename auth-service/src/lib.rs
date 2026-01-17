@@ -1,5 +1,5 @@
 pub mod config;
-pub mod handlers;
+pub mod routes;
 pub mod logging;
 pub mod openapi;
 
@@ -15,7 +15,7 @@ use tracing::Level;
 
 use utoipa_scalar::{Scalar, Servable};
 
-use self::handlers::build_app_router;
+use self::routes::build_app_router;
 
 #[derive(Debug)]
 pub struct Application {
