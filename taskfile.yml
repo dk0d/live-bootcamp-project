@@ -12,7 +12,6 @@ includes:
     taskfile: "./app-service/taskfile.yml"
     dir: "./app-service"
     excludes: [default]
-    
 
 tasks:
   default:
@@ -23,7 +22,7 @@ tasks:
 
   build:
     cmds:
-      - docker compose build
+      - docker compose build 
 
   up: 
     cmds:
