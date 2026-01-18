@@ -1,0 +1,13 @@
+
+
+
+services:
+  
+  app-service:
+    build:
+      context: ./app-service
+    
+  auth-service:
+    build:
+      context: ./auth-service
+    
