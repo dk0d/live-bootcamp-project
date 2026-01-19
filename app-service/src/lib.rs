@@ -3,11 +3,12 @@ pub mod logging;
 
 pub use config::*;
 
-use std::{env, time::Duration};
+use std::{env, sync::Arc, time::Duration};
 
 use askama::Template;
 use axum::{
     Json, Router,
+    extract::State,
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::get,
@@ -26,13 +27,10 @@ struct IndexTemplate {
     logout_link: String,
 }
 
-async fn root() -> impl IntoResponse {
-    let mut address = env::var("AUTH_SERVICE_IP").unwrap_or("localhost".to_owned());
-    if address.is_empty() {
-        address = "localhost".to_owned();
-    }
-    let login_link = format!("http://{}:3000", address);
-    let logout_link = format!("http://{}:3000/logout", address);
+async fn root(State(state): State<AppState>) -> impl IntoResponse {
+    let auth_url = state.config.auth.url.clone();
+    let login_link = auth_url.clone();
+    let logout_link = format!("{}/logout", auth_url);
 
     let template = IndexTemplate {
         login_link,
@@ -82,7 +80,15 @@ pub struct ProtectedRouteResponse {
     pub img_url: String,
 }
 
-pub fn build_app_router() -> Router {
+#[derive(Clone)]
+pub struct AppState {
+    pub config: Arc<Config>,
+}
+
+pub fn build_app_router(config: &Config) -> Router {
+    let state = AppState {
+        config: Arc::new(config.clone()),
+    };
     Router::new()
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/", get(root))
@@ -106,4 +112,5 @@ pub fn build_app_router() -> Router {
                     },
                 ),
         )
+        .with_state(state)
 }

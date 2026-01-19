@@ -1,7 +1,7 @@
 pub mod config;
-pub mod routes;
 pub mod logging;
 pub mod openapi;
+pub mod routes;
 
 use std::time::Duration;
 

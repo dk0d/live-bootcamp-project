@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
 
     logging::init(&config)?;
 
-    let app = build_app_router();
+    let app = build_app_router(&config);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))
         .await

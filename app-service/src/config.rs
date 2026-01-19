@@ -1,6 +1,6 @@
 // FIXME: Create a workspace and move shared config stuffs to a common crate
 
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, Default, Clone)]
 pub struct TelemetryConfig {
     #[serde(default = "default_false")]
     pub enabled: bool,
@@ -18,7 +18,20 @@ pub enum AppEnv {
     Production,
 }
 
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, Clone)]
+pub struct AuthConfig {
+    pub url: String,
+}
+
+impl Default for AuthConfig {
+    fn default() -> Self {
+        AuthConfig {
+            url: "http://localhost:5170".to_string(),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Default, Clone)]
 pub struct Config {
     #[serde(default = "default_url")]
     pub url: String,
@@ -31,6 +44,9 @@ pub struct Config {
 
     #[serde(default = "AppEnv::default")]
     pub env: AppEnv,
+
+    #[serde(default = "AuthConfig::default")]
+    pub auth: AuthConfig,
 }
 
 fn default_url() -> String {
