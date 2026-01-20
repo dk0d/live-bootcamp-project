@@ -1,116 +1,72 @@
-pub mod config;
-pub mod logging;
+// The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
+// need dioxus
+use dioxus::prelude::*;
 
-pub use config::*;
+use views::{AppNavbar, Home, Login, Signup};
 
-use std::{env, sync::Arc, time::Duration};
+/// Define a components module that contains all shared components for our app.
+mod components;
+/// Define a views module that contains the UI for all Layouts and Routes for our app.
+mod views;
 
-use askama::Template;
-use axum::{
-    Json, Router,
-    extract::State,
-    http::StatusCode,
-    response::{Html, IntoResponse},
-    routing::get,
-};
-use axum_extra::extract::CookieJar;
-use serde::Serialize;
-use tower_http::services::ServeDir;
+/// The Route enum is used to define the structure of internal routes in our app. All route enums need to derive
+/// the [`Routable`] trait, which provides the necessary methods for the router to work.
+/// 
+/// Each variant represents a different URL pattern that can be matched by the router. If that pattern is matched,
+/// the components for that route will be rendered.
+#[derive(Debug, Clone, Routable, PartialEq)]
+#[rustfmt::skip]
+enum Route {
+    // The layout attribute defines a wrapper for all routes under the layout. Layouts are great for wrapping
+    // many routes with a common UI like a navbar.
+    #[layout(AppNavbar)]
+    
+        #[route("/")]
+        Home {},
+    
+        #[route("/signup")]
+        Signup,
 
-use tower_http::trace::TraceLayer;
-use tracing::Level;
-
-#[derive(Template)]
-#[template(path = "index.html")]
-struct IndexTemplate {
-    login_link: String,
-    logout_link: String,
+        #[route("/login")]
+        Login,
 }
 
-async fn root(State(state): State<AppState>) -> impl IntoResponse {
-    let auth_url = state.config.auth.url.clone();
-    let login_link = auth_url.clone();
-    let logout_link = format!("{}/logout", auth_url);
+const FAVICON: Asset = asset!("/assets/favicon.ico");
+const THEME_CSS: Asset = asset!("/assets/dx-components-theme.css");
+const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
-    let template = IndexTemplate {
-        login_link,
-        logout_link,
-    };
-    Html(template.render().unwrap())
-}
+/// App is the main component of our app. Components are the building blocks of dioxus apps. Each component is a function
+/// that takes some props and returns an Element. In this case, App takes no props because it is the root of our app.
+///
+/// Components should be annotated with `#[component]` to support props, better error messages, and autocomplete
+#[component]
+pub fn App() -> Element {
+    // The `rsx!` macro lets us define HTML inside of rust. It expands to an Element with all of our HTML inside.
+    rsx! {
 
-async fn protected(jar: CookieJar) -> impl IntoResponse {
-    let jwt_cookie = match jar.get("jwt") {
-        Some(cookie) => cookie,
-        None => {
-            return StatusCode::UNAUTHORIZED.into_response();
+        head {
+            meta {
+                charset: "utf-8"
+            }
+            meta {
+                name: "viewport",
+                content: "width=device-width, initial-scale=1"
+            }
         }
-    };
 
-    let api_client = reqwest::Client::builder().build().unwrap();
+        // In addition to element and text (which we will see later), rsx can contain other components. In this case,
+        // we are using the `document::Link` component to add a link to our favicon and main CSS file into the head of our app.
+        document::Link { rel: "icon", href: FAVICON }
+        // document::Link { rel: "stylesheet", href: MAIN_CSS }
+        document::Link { rel: "stylesheet", href: THEME_CSS }
+        document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
-    let verify_token_body = serde_json::json!({
-        "token": &jwt_cookie.value(),
-    });
+        // The router component renders the route enum we defined above. It will handle synchronization of the URL and render
+        // the layouts and components for the active route.
+        Router::<Route> {}
 
-    let auth_hostname = env::var("AUTH_SERVICE_HOST_NAME").unwrap_or("0.0.0.0".to_owned());
-    let url = format!("http://{}:3000/verify-token", auth_hostname);
-
-    let response = match api_client.post(&url).json(&verify_token_body).send().await {
-        Ok(response) => response,
-        Err(_) => {
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        script {
+            src: asset!("/assets/app.js"),
         }
-    };
-
-    match response.status() {
-        reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::BAD_REQUEST => {
-            StatusCode::UNAUTHORIZED.into_response()
-        }
-        reqwest::StatusCode::OK => Json(ProtectedRouteResponse {
-            img_url: "https://i.ibb.co/YP90j68/Light-Live-Bootcamp-Certificate.png".to_owned(),
-        })
-        .into_response(),
-        _ => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
-}
-
-#[derive(Serialize)]
-pub struct ProtectedRouteResponse {
-    pub img_url: String,
-}
-
-#[derive(Clone)]
-pub struct AppState {
-    pub config: Arc<Config>,
-}
-
-pub fn build_app_router(config: &Config) -> Router {
-    let state = AppState {
-        config: Arc::new(config.clone()),
-    };
-    Router::new()
-        .nest_service("/assets", ServeDir::new("assets"))
-        .route("/", get(root))
-        .route("/protected", get(protected))
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(|request: &axum::http::Request<_>| {
-                    tracing::span!(
-                        Level::INFO,
-                            "http_request",
-                            method = %request.method(),
-                            uri = %request.uri().path(),
-                            status = tracing::field::Empty, // Status filled later
-                            latency_us = tracing::field::Empty // Latency filled later
-                    )
-                })
-                .on_response(
-                    |resp: &axum::http::Response<_>, latency: Duration, span: &tracing::Span| {
-                        span.record("status", resp.status().as_u16());
-                        span.record("latency_us", latency.as_micros());
-                    },
-                ),
-        )
-        .with_state(state)
 }

@@ -1,27 +1,9 @@
-use figment::{
-    Figment,
-    providers::{Env, Format, Toml},
-};
-use libapp::{Config, build_app_router, logging};
+use dioxus::prelude::*;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let config: Config = Figment::new()
-        .merge(Env::prefixed("LRAPP__"))
-        .merge(Toml::file("default.toml"))
-        .extract()?;
+use libapp::App;
 
-    logging::init(&config)?;
-
-    let app = build_app_router(&config);
-
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))
-        .await
-        .unwrap();
-
-    tracing::info!("Listening on {}", listener.local_addr().unwrap());
-
-    axum::serve(listener, app).await.unwrap();
-
-    Ok(())
+fn main() {
+    // The `launch` function is the main entry point for a dioxus app. It takes a component and renders it with the platform feature
+    // you have enabled
+    dioxus::launch(App);
 }
