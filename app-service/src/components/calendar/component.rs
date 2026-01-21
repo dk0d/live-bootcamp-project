@@ -61,11 +61,7 @@ pub fn CalendarView(
     children: Element,
 ) -> Element {
     rsx! {
-        div {
-            class: "calendar-view",
-            ..attributes,
-            {children}
-        }
+        div { class: "calendar-view", ..attributes, {children} }
     }
 }
 

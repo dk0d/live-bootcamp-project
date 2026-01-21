@@ -13,15 +13,12 @@ pub fn AppNavbar() -> Element {
         Navbar {
             class: "flex flex-row items-center m-12 shadow-md",
             aria_label: "Main Navigation",
-            NavbarItem {
-                index: 0usize,
-                value: "home",
-                to: Route::Home {},
+            NavbarItem { index: 0usize, value: "home", to: Route::Home {},
                 img {
                     id: "logo",
                     alt: "LGR Auth Logo",
                     src: asset!("/assets/lgr_logo.png"),
-                    class: "size-10"
+                    class: "size-10",
                 }
             }
 
@@ -34,15 +31,12 @@ pub fn AppNavbar() -> Element {
             //         "Signup"
             //     }
             // }
-
             NavbarItem {
-                class: "flex flex-1" ,
+                class: "flex flex-1",
                 index: 1usize,
                 value: "login",
                 to: Route::Login,
-                div {
-                    "Login"
-                }
+                div { "Login" }
             }
         }
 

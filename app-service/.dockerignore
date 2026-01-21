@@ -2,3 +2,8 @@
 target/
 tests/
 Dockerfile
+LICENSE
+LICENSES
+**/dist
+temp
+README.md

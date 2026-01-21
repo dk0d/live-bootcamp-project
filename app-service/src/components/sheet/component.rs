@@ -152,7 +152,7 @@ pub fn SheetClose(
         dynamic.call(merged_attributes)
     } else {
         rsx! {
-            button { ..merged_attributes, {children} }
+            button { ..merged_attributes,{children} }
         }
     }
 }

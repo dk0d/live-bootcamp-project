@@ -16,7 +16,6 @@ pub mod toolbar;
 pub mod tabs;
 pub mod textarea;
 pub mod tooltip;
-pub mod form;
 pub mod progress;
 pub mod toast;
 pub mod card;

@@ -4,8 +4,9 @@ use dioxus::prelude::*;
 
 use views::{AppNavbar, Home, Login, Signup};
 
-/// Define a components module that contains all shared components for our app.
 mod components;
+/// Define a components module that contains all shared components for our app.
+pub mod form;
 /// Define a views module that contains the UI for all Layouts and Routes for our app.
 mod views;
 
@@ -31,7 +32,7 @@ enum Route {
         Login,
 }
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
+// const FAVICON: Asset = asset!("/assets/favicon.ico");
 const THEME_CSS: Asset = asset!("/assets/dx-components-theme.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
@@ -45,18 +46,16 @@ pub fn App() -> Element {
     rsx! {
 
         head {
-            meta {
-                charset: "utf-8"
-            }
+            meta { charset: "utf-8" }
             meta {
                 name: "viewport",
-                content: "width=device-width, initial-scale=1"
+                content: "width=device-width, initial-scale=1",
             }
         }
 
         // In addition to element and text (which we will see later), rsx can contain other components. In this case,
         // we are using the `document::Link` component to add a link to our favicon and main CSS file into the head of our app.
-        document::Link { rel: "icon", href: FAVICON }
+        // document::Link { rel: "icon", href: FAVICON }
         // document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: THEME_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
@@ -65,8 +64,6 @@ pub fn App() -> Element {
         // the layouts and components for the active route.
         Router::<Route> {}
 
-        script {
-            src: asset!("/assets/app.js"),
-        }
+        script { src: asset!("/assets/app.js") }
     }
 }
