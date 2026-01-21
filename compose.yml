@@ -1,15 +1,25 @@
-
 #yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/refs/heads/main/schema/compose-spec.json
 
 services:
   
-  app-service:
-    image: d3k0d/app-service # specify name of image on Docker Hub
+  # app-service-rs:
+  #   image: d3k0d/app-service # specify name of image on Docker Hub
+  #   restart: "always" # automatically restart container when server crashes
+  #   environment: # set up environment variables
+  #     AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
+  #   ports:
+  #     - "5173:5173" # expose port 8000 so that applications outside the container can connect to it 
+  #   depends_on: # only run app-service after auth-service has started
+  #     auth-service:
+  #       condition: service_started
+
+  app-sv:
+    image: d3k0d/app-sv # specify name of image on Docker Hub
     restart: "always" # automatically restart container when server crashes
-    environment: # set up environment variables
-      AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
     ports:
-      - "5173:5173" # expose port 8000 so that applications outside the container can connect to it 
+      - "5173:3000" # expose port 8000 so that applications outside the container can connect to it 
+    environment: # set up environment variables
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://localhost:5170} # Use localhost as the default value
     depends_on: # only run app-service after auth-service has started
       auth-service:
         condition: service_started

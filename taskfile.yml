@@ -8,9 +8,14 @@ includes:
     dir: "./auth-service"
     excludes: [default]
     
-  app:
+  app-rs:
     taskfile: "./app-service/taskfile.yml"
     dir: "./app-service"
+    excludes: [default]
+    
+  sv:
+    taskfile: "./app-sv/taskfile.yml"
+    dir: "./app-sv"
     excludes: [default]
 
 tasks:
