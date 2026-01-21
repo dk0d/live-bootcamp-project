@@ -21,8 +21,6 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          app-service/.cargo
-          app-service/target/
           auth-service/.cargo
           auth-service/target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
@@ -31,11 +29,12 @@ jobs:
     - name: Install Rust
       run: rustup update stable && rustup default stable
 
-    - name: Build and test app-service code
-      working-directory: ./app-service
-      run: |
-        cargo build --verbose
-        cargo test --verbose
+    # NOTE: Disable until can figure out dioxus deploy
+    # - name: Build and test app-service code
+    #   working-directory: ./app-sv
+    #   run: |
+    #     cargo build --verbose
+    #     cargo test --verbose
 
     - name: Build and test auth-service code
       working-directory: ./auth-service
