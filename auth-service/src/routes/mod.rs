@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -16,8 +18,9 @@ pub use verify_2fa::*;
 pub use verify_token::*;
 
 use crate::openapi::ApiDoc;
+use crate::state::AppState;
 
-pub fn build_app_router() -> OpenApiRouter {
+pub fn build_app_router(state: AppState) -> OpenApiRouter {
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(root))
         .routes(routes!(hello_handler))
@@ -29,4 +32,5 @@ pub fn build_app_router() -> OpenApiRouter {
         .routes(routes!(verify_2fa_handler))
         .routes(routes!(verify_token_handler))
         .routes(routes!(readyz))
+        .with_state(state)
 }

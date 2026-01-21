@@ -1,21 +1,29 @@
 pub mod config;
+pub mod domain;
 pub mod logging;
 pub mod openapi;
 pub mod routes;
+pub mod services;
+pub mod state;
+pub mod utils;
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::net::TcpListener;
 
 use axum::{serve::Serve, Router};
 
+use tokio::sync::RwLock;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 
 use utoipa_scalar::{Scalar, Servable};
 
-use self::routes::build_app_router;
+use crate::routes::build_app_router;
+
+use self::services::user_store::hash_map::HashMapUserUserStore;
 
 #[derive(Debug)]
 pub struct Application {
@@ -36,7 +44,10 @@ impl Application {
     pub async fn build_router(_config: &config::Config) -> anyhow::Result<Router> {
         let assets_dir =
             ServeDir::new("assets").not_found_service(ServeFile::new("assets/404.html"));
-        let (router, api) = build_app_router().split_for_parts();
+        let user_store = Arc::new(RwLock::new(HashMapUserUserStore::new()));
+        // TODO: configure app state based on config settings
+        let state = state::AppState::new(user_store);
+        let (router, api) = build_app_router(state).split_for_parts();
         let router = router
             .fallback_service(assets_dir)
             .merge(Scalar::with_url("/docs", api))
