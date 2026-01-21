@@ -8,7 +8,7 @@ USER root
     
 # RUN apt-get update && \
 RUN apt-get update && \
-    apt-get install build-essential libssl-dev curl bash -y && \
+    apt-get install build-essential libssl-dev pkg-config curl bash -y && \
     rm -rf /var/lib/apt/lists/* && \
     cargo install cargo-chef
     
@@ -44,10 +44,11 @@ RUN dx bundle --web --release
 
 # We do not need the Rust toolchain to run the binary!
 # Start with a minimal image and copy over the binary and assets folder.
-FROM debian:buster-slim AS runtime
+FROM debian:latest AS runtime
 WORKDIR /app
 COPY --from=builder /app/default.toml /app/default.toml
 COPY --from=builder /app/target/release/app-service /usr/local/bin
+COPY --from=builder /app/target/dx/app-service/release/web/ /app
 COPY --from=builder /app/assets /app/assets
 
 ENV PORT=8080

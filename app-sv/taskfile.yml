@@ -1,0 +1,24 @@
+
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+
+tasks:
+  default:
+    desc: List all tasks
+    cmds:
+      - task --list-all
+    silent: true
+  
+  build: 
+    desc: Build svelte app
+    cmds: 
+      - bun run build 
+    
+  watch: 
+    desc: Run the svelte app server
+    cmds: 
+      - bun run dev 
+
+    

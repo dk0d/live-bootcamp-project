@@ -26,7 +26,14 @@ tracing-subscriber = { version = "0.3.22", features = [
   "env-filter",
 ] }
 dioxus = "0.7.3"
-dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version = "0.0.1", default-features = false, features = ["router"] }
+# wasm-pack = "0.14.0"
+dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version = "0.0.1", default-features = false, features = [
+  "router",
+] }
+
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["--strip-dwarf"]
 
 
 [features]
