@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::domain::{User, UserStore, UserStoreError};
+use crate::domain::{Email, Password, User, UserStore, UserStoreError};
 use crate::utils::crypto::hash_password;
 
 #[derive(Debug, Clone)]
 pub struct HashMapUserUserStore {
-    users: HashMap<String, User>,
+    users: HashMap<Email, User>,
 }
 
 impl HashMapUserUserStore {
@@ -32,7 +32,7 @@ impl UserStore for HashMapUserUserStore {
         Ok(())
     }
 
-    async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         match self.users.get(email) {
             Some(user) => Ok(user.clone()),
             None => Err(UserStoreError::UserNotFound),
@@ -41,13 +41,13 @@ impl UserStore for HashMapUserUserStore {
 
     async fn validate_credentials(
         &self,
-        email: &str,
-        password: &str,
+        email: &Email,
+        password: &Password,
     ) -> Result<bool, UserStoreError> {
         match self.users.get(email) {
-            Some(user) => match hash_password(password) {
+            Some(user) => match hash_password(password.as_ref()) {
                 Ok(hashed_password) => {
-                    if user.hashed_password == hashed_password {
+                    if user.hashed_password.as_ref() == hashed_password {
                         Ok(true)
                     } else {
                         Err(UserStoreError::InvalidCredentials)
@@ -68,8 +68,8 @@ mod tests {
     async fn test_add_user() {
         let mut store = HashMapUserUserStore::new();
         let user = User {
-            email: "me@you.com".to_string(),
-            hashed_password: "hashed_password".to_string(),
+            email: "me@you.com".try_into().unwrap(),
+            hashed_password: "hashed_password".try_into().unwrap(),
             requires_2fa: false,
         };
         let res = store.add_user(user).await;
@@ -80,27 +80,33 @@ mod tests {
     async fn test_get_user() {
         let mut store = HashMapUserUserStore::new();
         let user = User {
-            email: "me@you.com".to_string(),
-            hashed_password: "hashed_password".to_string(),
+            email: "me@you.com".try_into().unwrap(),
+            hashed_password: "hashed_password".try_into().unwrap(),
             requires_2fa: false,
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
-        assert!(store.get_user("me@you.com").await.is_ok());
+        assert!(store
+            .get_user(&Email::parse("me@you.com").unwrap())
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
     async fn test_validate_user() {
         let mut store = HashMapUserUserStore::new();
         let user = User {
-            email: "me@you.com".to_string(),
-            hashed_password: "hashed_password".to_string(),
+            email: "me@you.com".try_into().unwrap(),
+            hashed_password: "hashed_password".try_into().unwrap(),
             requires_2fa: false,
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
         assert!(store
-            .validate_credentials("me@you.com", "password")
+            .validate_credentials(
+                &Email::parse("me@you.com").unwrap(),
+                &Password::parse("password").unwrap()
+            )
             .await
             .is_ok());
     }
