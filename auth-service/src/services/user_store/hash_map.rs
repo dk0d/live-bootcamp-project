@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::User;
-use crate::services::user_store::traits::UserStore;
-use crate::services::user_store::UserStoreError;
+use crate::domain::{User, UserStore, UserStoreError};
 use crate::utils::crypto::hash_password;
 
 #[derive(Debug, Clone)]
@@ -24,8 +22,9 @@ impl Default for HashMapUserUserStore {
     }
 }
 
+#[async_trait::async_trait]
 impl UserStore for HashMapUserUserStore {
-    fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
+    async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         if self.users.contains_key(&user.email) {
             return Err(UserStoreError::UserAlreadyExists);
         }
@@ -33,14 +32,18 @@ impl UserStore for HashMapUserUserStore {
         Ok(())
     }
 
-    fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
         match self.users.get(email) {
             Some(user) => Ok(user.clone()),
             None => Err(UserStoreError::UserNotFound),
         }
     }
 
-    fn validate_credentials(&self, email: &str, password: &str) -> Result<bool, UserStoreError> {
+    async fn validate_credentials(
+        &self,
+        email: &str,
+        password: &str,
+    ) -> Result<bool, UserStoreError> {
         match self.users.get(email) {
             Some(user) => match hash_password(password) {
                 Ok(hashed_password) => {
@@ -69,7 +72,7 @@ mod tests {
             hashed_password: "hashed_password".to_string(),
             requires_2fa: false,
         };
-        let res = store.add_user(user);
+        let res = store.add_user(user).await;
         assert!(res.is_ok());
     }
 
@@ -81,9 +84,9 @@ mod tests {
             hashed_password: "hashed_password".to_string(),
             requires_2fa: false,
         };
-        _ = store.add_user(user);
+        _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
-        assert!(store.get_user("me@you.com").is_ok());
+        assert!(store.get_user("me@you.com").await.is_ok());
     }
 
     #[tokio::test]
@@ -94,8 +97,11 @@ mod tests {
             hashed_password: "hashed_password".to_string(),
             requires_2fa: false,
         };
-        _ = store.add_user(user);
+        _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
-        assert!(store.validate_credentials("me@you.com", "password").is_ok());
+        assert!(store
+            .validate_credentials("me@you.com", "password")
+            .await
+            .is_ok());
     }
 }

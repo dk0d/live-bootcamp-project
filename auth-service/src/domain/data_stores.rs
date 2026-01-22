@@ -1,9 +1,20 @@
+use crate::domain::User;
+use crate::errors::ErrorResponse;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use reqwest::StatusCode;
 use utoipa::ToSchema;
 
-use crate::errors::ErrorResponse;
+#[async_trait::async_trait]
+pub trait UserStore: Send + Sync + std::fmt::Debug {
+    async fn add_user(&mut self, user: User) -> Result<(), UserStoreError>;
+    async fn get_user(&self, email: &str) -> Result<User, UserStoreError>;
+    async fn validate_credentials(
+        &self,
+        email: &str,
+        password: &str,
+    ) -> Result<bool, UserStoreError>;
+}
 
 #[derive(Debug, thiserror::Error, Clone, ToSchema)]
 pub enum UserStoreError {

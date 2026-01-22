@@ -6,9 +6,8 @@ use serde::Serialize;
 use tracing::instrument;
 use utoipa::ToSchema;
 
-use crate::domain::user::User;
+use crate::domain::{User, UserStore, UserStoreError};
 use crate::errors::ErrorResponse;
-use crate::services::user_store::{UserStore, UserStoreError};
 use crate::state::AppState;
 use crate::utils::crypto::hash_password;
 
@@ -144,7 +143,7 @@ pub async fn signup_handler(
     // Placeholder for signup logic
     let user: User = request.try_into()?;
     let mut user_store = state.user_store.write().await;
-    user_store.add_user(user)?;
+    user_store.add_user(user).await?;
     Ok((
         StatusCode::CREATED,
         Json(SignupResponse {
