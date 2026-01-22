@@ -20,17 +20,17 @@ pub async fn test_signup_return_422_input_invalid() {
 
     let test_cases = [
         serde_json::json!({}), // Empty body
-        serde_json::json!({
+        serde_json::json!({ // incomplete
             "password": "password123",
             "requires_2fa": false
 
         }),
-        serde_json::json!({
+        serde_json::json!({// missing method
             "username": "testuser",
             "password": "password123",
             "requires_2fa": false
         }),
-        serde_json::json!({
+        serde_json::json!({ // invalid method/input pair
             "method": "passkey",
             "username": "testuser",
             "password": "password123",
@@ -45,4 +45,44 @@ pub async fn test_signup_return_422_input_invalid() {
             reqwest::StatusCode::UNPROCESSABLE_ENTITY
         );
     }
+}
+
+#[tokio::test]
+pub async fn test_signup_return_400_invalid_input() {
+    let app = get_test_app().await;
+    let body = serde_json::json!({
+        "method": "email_password",
+        "email": "not-an-email",
+        "password": "validpassword1234",
+        "requires_2fa": false
+    });
+    let response = app.post_signup(&body).await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::BAD_REQUEST);
+
+    let body = serde_json::json!({
+        "method": "email_password",
+        "email": "valid@email.com",
+        "password": "badpwd",
+        "requires_2fa": false
+    });
+    let response = app.post_signup(&body).await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+pub async fn test_signup_return_409_user_exists() {
+    let app = get_test_app().await;
+
+    let body = serde_json::json!({
+        "method": "email_password",
+        "email": "my@me.com",
+        "password": "validpassword1234",
+        "requires_2fa": false
+    });
+
+    let response = app.post_signup(&body).await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::CREATED);
+
+    let response = app.post_signup(&body).await;
+    assert_eq!(response.status_code(), reqwest::StatusCode::CONFLICT);
 }

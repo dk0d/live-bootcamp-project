@@ -7,7 +7,8 @@ use tracing::instrument;
 use utoipa::ToSchema;
 
 use crate::domain::user::User;
-use crate::services::user_store::UserStore;
+use crate::errors::ErrorResponse;
+use crate::services::user_store::{UserStore, UserStoreError};
 use crate::state::AppState;
 use crate::utils::crypto::hash_password;
 
@@ -45,24 +46,57 @@ pub enum SignupError {
     #[error("Unsupported signup method")]
     UnsupportedMethod,
 
-    #[error("Invalid email or password")]
-    InvalidEmailPasswordRequest,
+    #[error("Invalid signup request")]
+    InvalidRequest,
 
     #[error(transparent)]
-    UserStoreError(#[from] crate::services::user_store::errors::UserStoreError),
+    UserStoreError(#[from] UserStoreError),
+
+    /// Error for invalid email format
+    #[error("Invalid email: {0}")]
+    InvalidEmail(String),
+
+    #[error("Invalid password: {0}")]
+    InvalidPassword(String),
 }
 
 impl IntoResponse for SignupError {
     fn into_response(self) -> axum::response::Response {
-        match self {
-            SignupError::UnsupportedMethod => {
-                (StatusCode::BAD_REQUEST, self.to_string()).into_response()
-            }
-            SignupError::InvalidEmailPasswordRequest => {
-                (StatusCode::BAD_REQUEST, self.to_string()).into_response()
-            }
-            SignupError::UserStoreError(e) => e.into_response(),
+        let code = match self {
+            SignupError::UnsupportedMethod => StatusCode::BAD_REQUEST,
+            SignupError::InvalidRequest => StatusCode::BAD_REQUEST,
+            SignupError::UserStoreError(ref e) => e.status_code(),
+            SignupError::InvalidEmail(_) => StatusCode::BAD_REQUEST,
+            SignupError::InvalidPassword(_) => StatusCode::BAD_REQUEST,
+        };
+        let body = Json(ErrorResponse {
+            error: self.to_string(),
+        });
+        (code, body).into_response()
+    }
+}
+
+struct SignupValidator;
+impl SignupValidator {
+    fn validate_password(password: &str) -> Result<(), SignupError> {
+        // Simple password strength check (at least 8 characters)
+        if password.len() < 8 {
+            return Err(SignupError::InvalidPassword(
+                "Password must be at least 8 characters long".to_string(),
+            ));
         }
+        Ok(())
+    }
+
+    fn validate_email(email: &str) -> Result<(), SignupError> {
+        // Simple email format check
+        if !email.contains('@') || !email.contains('.') {
+            return Err(SignupError::InvalidEmail(
+                "Email format is invalid".to_string(),
+            ));
+        }
+
+        Ok(())
     }
 }
 
@@ -76,9 +110,11 @@ impl TryFrom<SignupRequest> for User {
                 password,
                 requires_2fa,
             } => {
+                SignupValidator::validate_password(&password)?;
+                SignupValidator::validate_email(&email)?;
                 // Here you would hash the password before storing it
                 let hashed_password = hash_password(&password)
-                    .map_err(|_| SignupError::InvalidEmailPasswordRequest)?;
+                    .map_err(|e| SignupError::InvalidPassword(e.to_string()))?;
                 Ok(Self::new(email, hashed_password, requires_2fa))
             }
             _ => Err(SignupError::UnsupportedMethod),

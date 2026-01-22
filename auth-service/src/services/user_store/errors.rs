@@ -1,6 +1,11 @@
 use axum::response::IntoResponse;
+use axum::Json;
+use reqwest::StatusCode;
+use utoipa::ToSchema;
 
-#[derive(Debug, thiserror::Error, Clone)]
+use crate::errors::ErrorResponse;
+
+#[derive(Debug, thiserror::Error, Clone, ToSchema)]
 pub enum UserStoreError {
     #[error("User already exists")]
     UserAlreadyExists,
@@ -15,23 +20,23 @@ pub enum UserStoreError {
     UnexpectedError(String),
 }
 
+impl UserStoreError {
+    pub fn status_code(&self) -> StatusCode {
+        match self {
+            UserStoreError::UserAlreadyExists => StatusCode::CONFLICT,
+            UserStoreError::UserNotFound => StatusCode::NOT_FOUND,
+            UserStoreError::InvalidCredentials => StatusCode::UNAUTHORIZED,
+            UserStoreError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 impl IntoResponse for UserStoreError {
     fn into_response(self) -> axum::response::Response {
-        match self {
-            UserStoreError::UserAlreadyExists => {
-                (axum::http::StatusCode::CONFLICT, self.to_string()).into_response()
-            }
-            UserStoreError::UserNotFound => {
-                (axum::http::StatusCode::NOT_FOUND, self.to_string()).into_response()
-            }
-            UserStoreError::InvalidCredentials => {
-                (axum::http::StatusCode::UNAUTHORIZED, self.to_string()).into_response()
-            }
-            UserStoreError::UnexpectedError(_) => (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                self.to_string(),
-            )
-                .into_response(),
-        }
+        let code = self.status_code();
+        let body = Json(ErrorResponse {
+            error: self.to_string(),
+        });
+        (code, body).into_response()
     }
 }
