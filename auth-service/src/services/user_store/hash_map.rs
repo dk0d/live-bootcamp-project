@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::domain::{Email, Password, User, UserStore, UserStoreError};
+use crate::domain::{Email, Password, User, UserStore};
+use crate::error::AuthApiError;
 use crate::utils::crypto::hash_password;
 
 #[derive(Debug, Clone)]
@@ -24,18 +25,18 @@ impl Default for HashMapUserUserStore {
 
 #[async_trait::async_trait]
 impl UserStore for HashMapUserUserStore {
-    async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
+    async fn add_user(&mut self, user: User) -> Result<(), AuthApiError> {
         if self.users.contains_key(&user.email) {
-            return Err(UserStoreError::UserAlreadyExists);
+            return Err(AuthApiError::UserAlreadyExists);
         }
         self.users.insert(user.email.clone(), user);
         Ok(())
     }
 
-    async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
+    async fn get_user(&self, email: &Email) -> Result<User, AuthApiError> {
         match self.users.get(email) {
             Some(user) => Ok(user.clone()),
-            None => Err(UserStoreError::UserNotFound),
+            None => Err(AuthApiError::UserNotFound),
         }
     }
 
@@ -43,19 +44,19 @@ impl UserStore for HashMapUserUserStore {
         &self,
         email: &Email,
         password: &Password,
-    ) -> Result<bool, UserStoreError> {
+    ) -> Result<bool, AuthApiError> {
         match self.users.get(email) {
             Some(user) => match hash_password(password.as_ref()) {
                 Ok(hashed_password) => {
                     if user.hashed_password.as_ref() == hashed_password {
                         Ok(true)
                     } else {
-                        Err(UserStoreError::InvalidCredentials)
+                        Err(AuthApiError::InvalidCredentials)
                     }
                 }
-                Err(e) => Err(UserStoreError::UnexpectedError(e.to_string())),
+                Err(e) => Err(AuthApiError::UnexpectedError(e.to_string())),
             },
-            None => Err(UserStoreError::UserNotFound),
+            None => Err(AuthApiError::UserNotFound),
         }
     }
 }

@@ -131,8 +131,11 @@ impl TestApp {
         self.server.get("/healthz").await
     }
 
-    pub async fn post_login(&self) -> TestResponse {
-        self.server.post("/login").await
+    pub async fn post_login<Body>(&self, body: &Body) -> TestResponse
+    where
+        Body: serde::Serialize,
+    {
+        self.server.post("/login").json(body).await
     }
 
     pub async fn post_signup<Body>(&self, body: &Body) -> TestResponse

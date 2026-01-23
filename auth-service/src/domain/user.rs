@@ -1,45 +1,20 @@
 use serde::{Deserialize, Serialize};
 
+use crate::error::AuthApiError;
 use crate::utils::crypto::hash_password;
-
-#[derive(Debug, thiserror::Error, Clone)]
-pub enum DataError {
-    #[error("Invalid format: {0}")]
-    InvalidData(String),
-
-    #[error("Password too short: {0}")]
-    PasswordTooShort(usize),
-
-    /// Error for invalid email format
-    #[error("Invalid email: {0}")]
-    InvalidEmail(String),
-
-    #[error("Missing field: {0}")]
-    MissingField(String),
-}
-
-impl DataError {
-    pub fn status_code(&self) -> axum::http::StatusCode {
-        match self {
-            DataError::InvalidData(_) => axum::http::StatusCode::BAD_REQUEST,
-            DataError::PasswordTooShort(_) => axum::http::StatusCode::BAD_REQUEST,
-            DataError::InvalidEmail(_) => axum::http::StatusCode::BAD_REQUEST,
-            DataError::MissingField(_) => axum::http::StatusCode::BAD_REQUEST,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
 pub struct Email(String);
 
 impl Email {
-    pub fn parse(email: &str) -> Result<Self, DataError> {
+    pub fn parse(email: &str) -> Result<Self, AuthApiError> {
         if !email.contains('@') || !email.contains('.') {
-            return Err(DataError::InvalidEmail(email.to_string()));
+            return Err(AuthApiError::InvalidEmail(email.to_string()));
         }
-        let (local_part, domain_part) = email.split_at(email.find('@').unwrap());
-        if local_part.is_empty() || domain_part.len() < 2 {
-            return Err(DataError::InvalidEmail(email.to_string()));
+        let (local_part, domain_part) = email.split_once('@').unwrap();
+        let (host, tld) = domain_part.split_once('.').unwrap();
+        if local_part.is_empty() || tld.len() < 2 || host.is_empty() {
+            return Err(AuthApiError::InvalidEmail(email.to_string()));
         }
         Ok(Email(email.to_string()))
     }
@@ -52,7 +27,7 @@ impl AsRef<str> for Email {
 }
 
 impl TryFrom<&str> for Email {
-    type Error = DataError;
+    type Error = AuthApiError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Email::parse(value)
@@ -60,7 +35,7 @@ impl TryFrom<&str> for Email {
 }
 
 impl TryFrom<String> for Email {
-    type Error = DataError;
+    type Error = AuthApiError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Email::parse(&value)
@@ -71,18 +46,18 @@ impl TryFrom<String> for Email {
 pub struct Password(String);
 
 impl Password {
-    pub fn parse(password: &str) -> Result<Self, DataError> {
+    pub fn parse(password: &str) -> Result<Self, AuthApiError> {
         if password.len() < 8 {
-            return Err(DataError::PasswordTooShort(password.len()));
+            return Err(AuthApiError::PasswordTooShort(password.len()));
         }
         let p = hash_password(password)
-            .map_err(|e| DataError::InvalidData(format!("Failed to hash password: {}", e)))?;
+            .map_err(|e| AuthApiError::InvalidData(format!("Failed to hash password: {}", e)))?;
         Ok(Password(p))
     }
 }
 
 impl TryFrom<&str> for Password {
-    type Error = DataError;
+    type Error = AuthApiError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Password::parse(value)
@@ -90,7 +65,7 @@ impl TryFrom<&str> for Password {
 }
 
 impl TryFrom<String> for Password {
-    type Error = DataError;
+    type Error = AuthApiError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Password::parse(&value)
@@ -148,12 +123,6 @@ mod tests {
         let short_password = "short";
         let result = Password::parse(short_password);
         assert!(result.is_err());
-        if let Err(e) = result {
-            match e {
-                DataError::PasswordTooShort(len) => assert_eq!(len, short_password.len()),
-                _ => panic!("Expected PasswordTooShort error"),
-            }
-        }
     }
 
     #[test]

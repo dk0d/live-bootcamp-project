@@ -6,8 +6,8 @@ use serde::Serialize;
 use tracing::instrument;
 use utoipa::ToSchema;
 
-use crate::domain::{DataError, Email, Password, User, UserStore, UserStoreError};
-use crate::errors::ErrorResponse;
+use crate::domain::{Email, Password, User, UserStore};
+use crate::error::AuthApiError;
 use crate::state::AppState;
 
 fn default_false() -> bool {
@@ -39,56 +39,21 @@ pub enum SignupRequest {
     Passkey { email: String },
 }
 
-#[derive(Debug, thiserror::Error, Clone)]
-pub enum SignupError {
-    #[error("Unsupported signup method")]
-    UnsupportedMethod,
-
-    #[error("Invalid signup request")]
-    InvalidRequest,
-
-    #[error(transparent)]
-    UserStoreError(#[from] UserStoreError),
-
-    /// Error for invalid email format
-    #[error(transparent)]
-    DataError(#[from] DataError),
-}
-
-impl IntoResponse for SignupError {
-    fn into_response(self) -> axum::response::Response {
-        let code = match self {
-            SignupError::UnsupportedMethod => StatusCode::BAD_REQUEST,
-            SignupError::InvalidRequest => StatusCode::BAD_REQUEST,
-            SignupError::UserStoreError(ref e) => e.status_code(),
-            SignupError::DataError(ref e) => e.status_code(),
-        };
-        let body = Json(ErrorResponse {
-            error: self.to_string(),
-        });
-        (code, body).into_response()
-    }
-}
-
 impl TryFrom<SignupRequest> for User {
-    type Error = SignupError;
+    type Error = AuthApiError;
 
-    fn try_from(req: SignupRequest) -> Result<Self, SignupError> {
+    fn try_from(req: SignupRequest) -> Result<Self, AuthApiError> {
         match req {
             SignupRequest::EmailPassword {
                 email,
                 password,
                 requires_2fa,
             } => {
-                let email: Email = email
-                    .try_into()
-                    .map_err(|e: DataError| SignupError::DataError(e))?;
-                let hashed_password: Password = password
-                    .try_into()
-                    .map_err(|e: DataError| SignupError::DataError(e))?;
+                let email: Email = email.try_into()?;
+                let hashed_password: Password = password.try_into()?;
                 Ok(Self::new(email, hashed_password, requires_2fa))
             }
-            _ => Err(SignupError::UnsupportedMethod),
+            _ => Err(AuthApiError::MalformedRequest),
         }
     }
 }
@@ -111,7 +76,7 @@ pub struct SignupResponse {
 pub async fn signup_handler(
     State(state): State<AppState>,
     Json(request): Json<SignupRequest>,
-) -> Result<impl IntoResponse, SignupError> {
+) -> Result<impl IntoResponse, AuthApiError> {
     // Placeholder for signup logic
     let user: User = request.try_into()?;
     let mut user_store = state.user_store.write().await;

@@ -19,20 +19,30 @@ pub async fn test_signup_return_422_input_invalid() {
     let app = get_test_app().await;
 
     let test_cases = [
-        serde_json::json!({}), // Empty body
-        serde_json::json!({ // incomplete
+        // Empty body
+        serde_json::json!({}),
+        // incomplete
+        serde_json::json!({
             "password": "password123",
             "requires_2fa": false
-
         }),
-        serde_json::json!({// missing method
+        // missing method
+        serde_json::json!({
+            "username": "testuser@me.com",
+            "password": "password123",
+            "requires_2fa": false
+        }),
+        // bad key
+        serde_json::json!({
+            "method": "email_password",
             "username": "testuser",
             "password": "password123",
             "requires_2fa": false
         }),
-        serde_json::json!({ // invalid method/input pair
+        // invalid method/input pair
+        serde_json::json!({
             "method": "passkey",
-            "username": "testuser",
+            "email": "testuser",
             "password": "password123",
             "requires_2fa": false
         }),
@@ -58,7 +68,6 @@ pub async fn test_signup_return_400_invalid_input() {
     });
     let response = app.post_signup(&body).await;
     assert_eq!(response.status_code(), reqwest::StatusCode::BAD_REQUEST);
-
     let body = serde_json::json!({
         "method": "email_password",
         "email": "valid@email.com",
