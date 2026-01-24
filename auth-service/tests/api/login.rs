@@ -64,7 +64,7 @@ async fn test_login_return_400_if_malformed_credentials() {
 }
 
 #[tokio::test]
-async fn test_login_return_401_if_invalid_credentials() {
+async fn test_login_401_if_invalid_credentials() {
     let app = get_test_app().await;
 
     app.post_signup(&serde_json::json!({
@@ -101,10 +101,11 @@ fn get_random_email() -> String {
 }
 
 #[tokio::test]
-async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
+async fn test_login_200_if_valid_credentials_and_2fa_disabled() {
     let app = get_test_app().await;
     let random_email = get_random_email();
     let signup_body = serde_json::json!({
+        "method": "email_password",
         "email": random_email,
         "password": "password123",
         "requires2FA": false
@@ -112,6 +113,7 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
     let response = app.post_signup(&signup_body).await;
     assert_eq!(response.status_code(), StatusCode::CREATED);
     let login_body = serde_json::json!({
+        "method": "email_password",
         "email": random_email,
         "password": "password123",
     });

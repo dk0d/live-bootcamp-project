@@ -4,8 +4,9 @@ use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::Deserialize;
 
 use crate::domain::Email;
+use crate::error::AuthApiError;
 
-pub fn hash_password(password: &str) -> Result<String, anyhow::Error> {
+pub fn hash_password(password: &str) -> Result<String, AuthApiError> {
     // FIXME: Replace with real hashing logic
     let hashed = format!("hashed_{}", password);
     Ok(hashed)

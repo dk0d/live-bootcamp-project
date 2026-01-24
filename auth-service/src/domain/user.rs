@@ -50,9 +50,7 @@ impl Password {
         if password.len() < 8 {
             return Err(AuthApiError::PasswordTooShort(password.len()));
         }
-        let p = hash_password(password)
-            .map_err(|e| AuthApiError::InvalidData(format!("Failed to hash password: {}", e)))?;
-        Ok(Password(p))
+        Ok(Password(password.to_string()))
     }
 }
 
@@ -78,18 +76,42 @@ impl AsRef<str> for Password {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
+pub struct HashedPassword(String);
+
+impl HashedPassword {
+    pub fn parse(password: &str) -> Result<Self, AuthApiError> {
+        let password = Password::parse(password)?;
+        let hashed = hash_password(password.as_ref())?;
+        Ok(HashedPassword(hashed))
+    }
+}
+
+impl From<Password> for HashedPassword {
+    fn from(password: Password) -> Self {
+        let hashed = hash_password(&password.0).expect("Failed to hash password");
+        HashedPassword(hashed)
+    }
+}
+
+impl AsRef<str> for HashedPassword {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct User {
     pub email: Email,
-    pub hashed_password: Password,
+    pub password: HashedPassword,
     pub requires_2fa: bool,
 }
 
 impl User {
-    pub fn new(email: Email, hashed_password: Password, requires_2fa: bool) -> Self {
+    pub fn new(email: Email, password: Password, requires_2fa: bool) -> Self {
         Self {
             email,
-            hashed_password,
+            password: password.into(),
             requires_2fa,
         }
     }

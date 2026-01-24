@@ -42,12 +42,14 @@ impl Application {
     ///
     /// Returns:
     /// - `Router`: The constructed application router.
-    pub async fn build_router(_config: &config::Config) -> anyhow::Result<Router> {
+    pub async fn build_router(config: &config::Config) -> anyhow::Result<Router> {
         let assets_dir =
             ServeDir::new("assets").not_found_service(ServeFile::new("assets/404.html"));
+
         let user_store = Arc::new(RwLock::new(HashMapUserUserStore::new()));
+
         // TODO: configure app state based on config settings
-        let state = state::AppState::new(user_store);
+        let state = state::AppState::new(config, user_store);
         let (router, api) = build_app_router(state).split_for_parts();
         let router = router
             .fallback_service(assets_dir)

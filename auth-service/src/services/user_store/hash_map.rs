@@ -48,7 +48,7 @@ impl UserStore for HashMapUserUserStore {
         match self.users.get(email) {
             Some(user) => match hash_password(password.as_ref()) {
                 Ok(hashed_password) => {
-                    if user.hashed_password.as_ref() == hashed_password {
+                    if user.password.as_ref() == hashed_password {
                         Ok(true)
                     } else {
                         Err(AuthApiError::InvalidCredentials)
@@ -70,7 +70,7 @@ mod tests {
         let mut store = HashMapUserUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
-            hashed_password: "hashed_password".try_into().unwrap(),
+            password: Password::parse("hashed_password").unwrap().into(),
             requires_2fa: false,
         };
         let res = store.add_user(user).await;
@@ -82,7 +82,7 @@ mod tests {
         let mut store = HashMapUserUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
-            hashed_password: "hashed_password".try_into().unwrap(),
+            password: Password::parse("hashed_password").unwrap().into(),
             requires_2fa: false,
         };
         _ = store.add_user(user).await;
@@ -98,7 +98,7 @@ mod tests {
         let mut store = HashMapUserUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
-            hashed_password: "hashed_password".try_into().unwrap(),
+            password: Password::parse("hashed_password").unwrap().into(),
             requires_2fa: false,
         };
         _ = store.add_user(user).await;

@@ -20,7 +20,6 @@ tasks:
     cmds:
       - cargo watch -q -c -w src/ -w assets/ -w default.toml -w -x run 
 
-
   test:
     desc: Run auth tests
     cmds:
