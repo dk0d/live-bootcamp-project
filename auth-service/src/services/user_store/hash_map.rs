@@ -98,7 +98,7 @@ mod tests {
         let mut store = HashMapUserUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
-            password: Password::parse("hashed_password").unwrap().into(),
+            password: Password::parse("password").unwrap().into(),
             requires_2fa: false,
         };
         _ = store.add_user(user).await;

@@ -83,7 +83,7 @@ async fn test_login_401_if_invalid_credentials() {
         serde_json::json!({
             "method": "email_password",
             "email": "can@login.com",
-            "password": "password123",
+            "password": "badpassword123",
         }),
     ];
 
