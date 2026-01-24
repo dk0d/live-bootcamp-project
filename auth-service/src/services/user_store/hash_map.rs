@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::domain::{Email, Password, User, UserStore};
 use crate::error::AuthApiError;
-use crate::utils::crypto::hash_password;
+use crate::utils::auth::hash_password;
 
 #[derive(Debug, Clone)]
 pub struct HashMapUserUserStore {

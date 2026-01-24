@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::AuthApiError;
-use crate::utils::crypto::hash_password;
+use crate::utils::auth::hash_password;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
 pub struct Email(String);

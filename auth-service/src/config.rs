@@ -1,4 +1,4 @@
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct TelemetryConfig {
     #[serde(default = "default_false")]
     pub enabled: bool,
@@ -20,7 +20,7 @@ pub enum ServerEnv {
     Production,
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct ServerConfig {
     #[serde(default = "default_server_host")]
     pub host: String,
@@ -38,7 +38,22 @@ impl Default for ServerConfig {
     }
 }
 
-#[derive(serde::Deserialize, Default, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
+pub struct JwtConfig {
+    pub cookie_name: String,
+    pub secret: String,
+}
+
+impl Default for JwtConfig {
+    fn default() -> Self {
+        JwtConfig {
+            cookie_name: "jwt_auth_token".to_string(),
+            secret: "really-long-super-secret-key-for-signing".to_string(),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Default, Debug, Clone)]
 pub struct Config {
     #[serde(default = "ServerConfig::default")]
     pub server: ServerConfig,
@@ -48,6 +63,9 @@ pub struct Config {
 
     #[serde(default = "ServerEnv::default")]
     pub env: ServerEnv,
+
+    #[serde(default = "JwtConfig::default")]
+    pub jwt: JwtConfig,
 }
 
 fn default_server_host() -> String {

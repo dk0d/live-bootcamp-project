@@ -107,6 +107,7 @@ impl TestServer {
 /// - easier path manipulation?
 /// - ...
 pub struct TestApp {
+    pub config: Config,
     pub server: axum_test::TestServer,
 }
 
@@ -116,7 +117,10 @@ impl TestApp {
             .await
             .expect("Failed to build application.");
         let server = axum_test::TestServer::new(app).expect("Failed to start test server.");
-        Self { server }
+        Self {
+            config: config.clone(),
+            server,
+        }
     }
 
     pub async fn get_root(&self) -> TestResponse {
