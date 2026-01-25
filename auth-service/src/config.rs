@@ -27,6 +27,16 @@ pub struct ServerConfig {
 
     #[serde(default = "default_server_port")]
     pub port: u16,
+
+    // Extra allowed origins for CORS
+    #[serde(default = "default_allowed_origins")]
+    pub allowed_origins: Option<Vec<String>>,
+}
+
+impl ServerConfig {
+    pub fn address(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
 }
 
 impl Default for ServerConfig {
@@ -34,6 +44,7 @@ impl Default for ServerConfig {
         ServerConfig {
             host: default_server_host(),
             port: default_server_port(),
+            allowed_origins: default_allowed_origins(),
         }
     }
 }
@@ -66,6 +77,10 @@ pub struct Config {
 
     #[serde(default = "JwtConfig::default")]
     pub jwt: JwtConfig,
+}
+
+fn default_allowed_origins() -> Option<Vec<String>> {
+    None
 }
 
 fn default_server_host() -> String {

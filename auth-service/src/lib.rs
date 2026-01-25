@@ -16,6 +16,7 @@ use tokio::net::TcpListener;
 use axum::{serve::Serve, Router};
 
 use tokio::sync::RwLock;
+use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::Level;
@@ -48,12 +49,30 @@ impl Application {
 
         let user_store = Arc::new(RwLock::new(HashMapUserUserStore::new()));
 
-        // TODO: configure app state based on config settings
+        let mut allowed_origins = vec![
+            format!("http://localhost:{}", config.server.port),
+            format!("http://{}", config.server.address()),
+        ];
+        if let Some(origins) = &config.server.allowed_origins {
+            allowed_origins.extend(origins.clone());
+        }
+
+        let cors = CorsLayer::new()
+            .allow_methods(vec![axum::http::Method::GET, axum::http::Method::POST])
+            .allow_origin(
+                allowed_origins
+                    .into_iter()
+                    .map(|o| o.parse().unwrap())
+                    .collect::<Vec<axum::http::header::HeaderValue>>(),
+            )
+            .allow_credentials(true);
+
         let state = state::AppState::new(config, user_store);
         let (router, api) = build_app_router(state).split_for_parts();
         let router = router
             .fallback_service(assets_dir)
             .merge(Scalar::with_url("/docs", api))
+            .layer(cors)
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(|request: &axum::http::Request<_>| {
