@@ -36,14 +36,25 @@ pub enum AuthApiError {
     #[error("Missing field: {0}")]
     MissingField(String),
 
+    /// User already exists
     #[error("User already exists")]
     UserAlreadyExists,
 
+    /// User not found
     #[error("User not found")]
     UserNotFound,
 
+    /// Invalid credentials provided
     #[error("Invalid credentials provided")]
     InvalidCredentials,
+
+    /// Invalid JWT token
+    #[error("Invalid jwt token")]
+    InvalidToken,
+
+    /// Missing token in request
+    #[error("Missing token in request")]
+    MissingToken,
 
     #[error("Unexpected error: {0}")]
     UnexpectedError(String),
@@ -67,6 +78,7 @@ impl StatusCoded for AuthApiError {
             AuthApiError::InvalidCredentials => StatusCode::BAD_REQUEST,
             AuthApiError::PasswordTooShort(_) => StatusCode::BAD_REQUEST,
             AuthApiError::InvalidEmail(_) => StatusCode::BAD_REQUEST,
+            AuthApiError::MissingToken => StatusCode::BAD_REQUEST,
             AuthApiError::MalformedRequest => StatusCode::UNPROCESSABLE_ENTITY,
             AuthApiError::InvalidData(_) => StatusCode::UNPROCESSABLE_ENTITY,
             AuthApiError::MissingField(_) => StatusCode::UNPROCESSABLE_ENTITY,
@@ -74,6 +86,7 @@ impl StatusCoded for AuthApiError {
             AuthApiError::UserAlreadyExists => StatusCode::CONFLICT,
             AuthApiError::UserNotFound => StatusCode::NOT_FOUND,
             AuthApiError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthApiError::InvalidToken => StatusCode::UNAUTHORIZED,
         }
     }
 }

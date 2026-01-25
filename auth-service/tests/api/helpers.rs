@@ -3,8 +3,8 @@
 use axum::response::IntoResponse;
 use axum_extra::extract::CookieJar;
 use axum_test::{TestRequest, TestResponse};
-use libauth_service::config::Config;
-use libauth_service::Application;
+use lgr_auth::config::Config;
+use lgr_auth::Application;
 use tokio::sync::OnceCell;
 
 static APP: OnceCell<TestApp> = OnceCell::const_new();

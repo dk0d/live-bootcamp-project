@@ -1,5 +1,5 @@
-use libauth_service::config;
-use libauth_service::{logging, Application};
+use lgr_auth::config;
+use lgr_auth::{logging, Application};
 
 use figment::{
     providers::{Env, Format, Toml},

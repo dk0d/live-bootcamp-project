@@ -53,12 +53,8 @@ async fn login(state: &AppState, body: &LoginRequest) -> Result<Cookie<'static>,
         // passkeys.rs likely - use WebAuthn flows
         LoginRequest::Passkey { .. } => Err(AuthApiError::MalformedRequest),
     }?;
-    generate_auth_cookie(
-        &validated_user_email,
-        &state.config.jwt.cookie_name,
-        &state.config.jwt.secret,
-    )
-    .map_err(|_| AuthApiError::Unauthorized)
+    generate_auth_cookie(&validated_user_email, &state.config.jwt)
+        .map_err(|_| AuthApiError::Unauthorized)
 }
 
 #[utoipa::path(

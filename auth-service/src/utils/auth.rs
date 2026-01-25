@@ -3,6 +3,7 @@ use axum_extra::extract::cookie::{Cookie, SameSite};
 use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::Deserialize;
 
+use crate::config::JwtConfig;
 use crate::domain::Email;
 use crate::error::AuthApiError;
 
@@ -108,13 +109,21 @@ where
     .map(|data| data.claims)
 }
 
-pub fn generate_auth_cookie(
+pub fn generate_auth_cookie_raw(
     email: &Email,
     name: &str,
     secret: &str,
 ) -> Result<Cookie<'static>, GenerateTokenError> {
     let token = generate_auth_token(email, secret)?;
     Ok(create_auth_cookie(name, token))
+}
+
+pub fn generate_auth_cookie(
+    email: &Email,
+    config: &JwtConfig,
+) -> Result<Cookie<'static>, GenerateTokenError> {
+    let token = generate_auth_token(email, &config.secret)?;
+    Ok(create_auth_cookie(&config.cookie_name, token))
 }
 
 #[cfg(test)]
@@ -129,7 +138,7 @@ mod tests {
     #[tokio::test]
     async fn test_auth_generate_cookie() {
         let email = Email::parse("test@example.com").unwrap();
-        let cookie = generate_auth_cookie(&email, JWT_COOKIE_NAME, JWT_SECRET).unwrap();
+        let cookie = generate_auth_cookie_raw(&email, JWT_COOKIE_NAME, JWT_SECRET).unwrap();
         assert_eq!(cookie.name(), JWT_COOKIE_NAME.to_string());
         assert_eq!(cookie.value().split('.').count(), 3);
         assert_eq!(cookie.path(), Some("/"));
