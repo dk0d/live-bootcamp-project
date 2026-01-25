@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
 use axum::response::IntoResponse;
-use axum_test::TestResponse;
+use axum_extra::extract::CookieJar;
+use axum_test::{TestRequest, TestResponse};
 use libauth_service::config::Config;
 use libauth_service::Application;
 use tokio::sync::OnceCell;
@@ -107,6 +108,7 @@ impl TestServer {
 /// - easier path manipulation?
 /// - ...
 pub struct TestApp {
+    pub jar: CookieJar,
     pub config: Config,
     pub server: axum_test::TestServer,
 }
@@ -118,6 +120,7 @@ impl TestApp {
             .expect("Failed to build application.");
         let server = axum_test::TestServer::new(app).expect("Failed to start test server.");
         Self {
+            jar: CookieJar::new(),
             config: config.clone(),
             server,
         }
@@ -135,29 +138,29 @@ impl TestApp {
         self.server.get("/healthz").await
     }
 
-    pub async fn post_login<Body>(&self, body: &Body) -> TestResponse
+    pub fn post_login<Body>(&self, body: &Body) -> TestRequest
     where
         Body: serde::Serialize,
     {
-        self.server.post("/login").json(body).await
+        self.server.post("/login").json(body)
     }
 
-    pub async fn post_signup<Body>(&self, body: &Body) -> TestResponse
+    pub fn post_signup<Body>(&self, body: &Body) -> TestRequest
     where
         Body: serde::Serialize,
     {
-        self.server.post("/signup").json(body).await
+        self.server.post("/signup").json(body)
     }
 
-    pub async fn post_logout(&self) -> TestResponse {
-        self.server.post("/logout").await
+    pub fn post_logout(&self) -> TestRequest {
+        self.server.post("/logout")
     }
 
-    pub async fn post_verify_2fa(&self) -> TestResponse {
-        self.server.post("/verify-2fa").await
+    pub fn post_verify_2fa(&self) -> TestRequest {
+        self.server.post("/verify-2fa")
     }
 
-    pub async fn post_verify_token(&self) -> TestResponse {
-        self.server.post("/verify-token").await
+    pub fn post_verify_token(&self) -> TestRequest {
+        self.server.post("/verify-token")
     }
 }
