@@ -28,7 +28,7 @@ impl TestServer {
         let address = format!("http://{}", app.address.clone());
 
         let http_client = reqwest::Client::builder()
-            .user_agent("auth-service-test")
+            .user_agent("lgr_auth-test")
             .build()
             .expect("Failed to build HTTP client.");
 
@@ -160,7 +160,10 @@ impl TestApp {
         self.server.post("/verify-2fa")
     }
 
-    pub fn post_verify_token(&self) -> TestRequest {
-        self.server.post("/verify-token")
+    pub fn post_verify_token<Body>(&self, body: &Body) -> TestRequest
+    where
+        Body: serde::Serialize,
+    {
+        self.server.post("/verify-token").json(body)
     }
 }
