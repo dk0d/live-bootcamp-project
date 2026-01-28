@@ -9,9 +9,19 @@ use utoipa::ToSchema;
 use crate::domain::{Email, Password, User, UserStore};
 use crate::error::AuthApiError;
 use crate::state::AppState;
+use crate::utils::FormOrJson;
 
 fn default_false() -> bool {
     false
+}
+
+#[derive(serde::Deserialize, Serialize, Debug, ToSchema, Default, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum TwoFactorStatus {
+    Required,
+
+    #[default]
+    Optional,
 }
 
 #[derive(serde::Deserialize, Serialize, Debug, ToSchema)]
@@ -22,8 +32,8 @@ pub enum SignupRequest {
     EmailPassword {
         email: String,
         password: String,
-        #[serde(default = "default_false")]
-        requires_2fa: bool,
+        #[serde(default = "TwoFactorStatus::default")]
+        two_factor: TwoFactorStatus,
     },
 
     /// Signup using magic link sent to email
@@ -47,11 +57,11 @@ impl TryFrom<SignupRequest> for User {
             SignupRequest::EmailPassword {
                 email,
                 password,
-                requires_2fa,
+                two_factor,
             } => {
                 let email: Email = email.try_into()?;
                 let hashed_password: Password = password.try_into()?;
-                Ok(Self::new(email, hashed_password, requires_2fa))
+                Ok(Self::new(email, hashed_password, two_factor))
             }
             _ => Err(AuthApiError::MalformedRequest),
         }
@@ -75,7 +85,7 @@ pub struct SignupResponse {
 #[instrument]
 pub async fn signup_handler(
     State(state): State<AppState>,
-    Json(request): Json<SignupRequest>,
+    FormOrJson(request): FormOrJson<SignupRequest>,
 ) -> Result<impl IntoResponse, AuthApiError> {
     // Placeholder for signup logic
     let user: User = request.try_into()?;
@@ -98,7 +108,7 @@ mod tests {
         let req = SignupRequest::EmailPassword {
             email: "testuser@hello.com".to_string(),
             password: "password123".to_string(),
-            requires_2fa: false,
+            two_factor: TwoFactorStatus::Optional,
         };
         let schema = serde_json::to_string_pretty(&req).unwrap();
         println!("SignupRequest Schema: {}", schema);

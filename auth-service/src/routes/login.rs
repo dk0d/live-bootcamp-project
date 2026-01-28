@@ -13,6 +13,7 @@ use crate::error::{AuthApiError, StatusCoded};
 use crate::state::AppState;
 
 use crate::utils::auth::generate_auth_cookie;
+use crate::utils::FormOrJson;
 
 #[derive(serde::Deserialize, Serialize, Debug, ToSchema)]
 #[serde(tag = "method", rename_all = "snake_case")]
@@ -71,13 +72,25 @@ async fn login(state: &AppState, body: &LoginRequest) -> Result<Cookie<'static>,
 pub async fn login_handler(
     jar: CookieJar, // must come before the body extractor
     State(state): State<AppState>,
-    Json(body): Json<LoginRequest>, // must be last
+    FormOrJson(body): FormOrJson<LoginRequest>, // must be last
 ) -> (CookieJar, impl IntoResponse) {
     match login(&state, &body).await {
         Ok(token_cookie) => {
-            let jar = jar.add(token_cookie);
-            (jar, (StatusCode::OK, "Login successful".to_string()))
+            let jar = jar.add(token_cookie.clone());
+            (
+                jar,
+                (
+                    StatusCode::OK,
+                    Json(serde_json::json!({"token": token_cookie.value()})),
+                ),
+            )
         }
-        Err(ref error) => (jar, (error.status_code(), error.to_string())),
+        Err(ref error) => (
+            jar,
+            (
+                error.status_code(),
+                Json(serde_json::json!({"error": error.to_string()})),
+            ),
+        ),
     }
 }

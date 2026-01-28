@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::AuthApiError;
+use crate::routes::TwoFactorStatus;
 use crate::utils::auth::hash_password;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
@@ -104,15 +105,15 @@ impl AsRef<str> for HashedPassword {
 pub struct User {
     pub email: Email,
     pub password: HashedPassword,
-    pub requires_2fa: bool,
+    pub two_factor: TwoFactorStatus,
 }
 
 impl User {
-    pub fn new(email: Email, password: Password, requires_2fa: bool) -> Self {
+    pub fn new(email: Email, password: Password, two_factor: TwoFactorStatus) -> Self {
         Self {
             email,
             password: password.into(),
-            requires_2fa,
+            two_factor,
         }
     }
 }

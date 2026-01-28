@@ -59,6 +59,13 @@ impl Application {
 
         let cors = CorsLayer::new()
             .allow_methods(vec![axum::http::Method::GET, axum::http::Method::POST])
+            .allow_headers(vec![
+                axum::http::header::ORIGIN,
+                axum::http::header::AUTHORIZATION,
+                axum::http::header::CONTENT_TYPE,
+                axum::http::header::COOKIE,
+                axum::http::header::SET_COOKIE,
+            ])
             .allow_origin(
                 allowed_origins
                     .into_iter()

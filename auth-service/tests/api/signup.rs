@@ -7,7 +7,7 @@ async fn test_signup_return_201_input_valid() {
         "method": "email_password",
         "email": "testuser@me.com",
         "password": "password123",
-        "requires_2fa": false
+        "two_factor": "optional",
     });
     let response = app.post_signup(&body).await;
     dbg!(&response);
@@ -24,27 +24,27 @@ pub async fn test_signup_return_422_input_invalid() {
         // incomplete
         serde_json::json!({
             "password": "password123",
-            "requires_2fa": false
+            "two_factor": "optional"
         }),
         // missing method
         serde_json::json!({
             "username": "testuser@me.com",
             "password": "password123",
-            "requires_2fa": false
+            "two_factor": "optional"
         }),
         // bad key
         serde_json::json!({
             "method": "email_password",
             "username": "testuser",
             "password": "password123",
-            "requires_2fa": false
+            "two_factor": "optional"
         }),
         // invalid method/input pair
         serde_json::json!({
             "method": "passkey",
             "email": "testuser",
             "password": "password123",
-            "requires_2fa": false
+            "two_factor": "optional"
         }),
     ];
 
@@ -64,7 +64,7 @@ pub async fn test_signup_return_400_invalid_input() {
         "method": "email_password",
         "email": "not-an-email",
         "password": "validpassword1234",
-        "requires_2fa": false
+        "two_factor": "optional"
     });
     let response = app.post_signup(&body).await;
     assert_eq!(response.status_code(), reqwest::StatusCode::BAD_REQUEST);
@@ -72,7 +72,7 @@ pub async fn test_signup_return_400_invalid_input() {
         "method": "email_password",
         "email": "valid@email.com",
         "password": "badpwd",
-        "requires_2fa": false
+        "two_factor": "optional"
     });
     let response = app.post_signup(&body).await;
     assert_eq!(response.status_code(), reqwest::StatusCode::BAD_REQUEST);
@@ -86,7 +86,7 @@ pub async fn test_signup_return_409_user_exists() {
         "method": "email_password",
         "email": "my@me.com",
         "password": "validpassword1234",
-        "requires_2fa": false
+        "two_factor": "optional"
     });
 
     let response = app.post_signup(&body).await;

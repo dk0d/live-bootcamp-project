@@ -4,7 +4,7 @@ use reqwest::StatusCode;
 use crate::helpers::get_test_app;
 
 #[tokio::test]
-async fn test_login_return_422_if_malformed_credentials() {
+async fn test_login_422_if_malformed_credentials() {
     let app = get_test_app().await;
 
     let test_cases = [
@@ -23,7 +23,6 @@ async fn test_login_return_422_if_malformed_credentials() {
 
     for body in test_cases.iter() {
         let response = app.post_login(&body).await;
-        dbg!(&response);
         assert_eq!(
             response.status_code(),
             reqwest::StatusCode::UNPROCESSABLE_ENTITY
@@ -32,7 +31,7 @@ async fn test_login_return_422_if_malformed_credentials() {
 }
 
 #[tokio::test]
-async fn test_login_return_400_if_malformed_credentials() {
+async fn test_login_400_if_malformed_credentials() {
     let app = get_test_app().await;
 
     let test_cases = [

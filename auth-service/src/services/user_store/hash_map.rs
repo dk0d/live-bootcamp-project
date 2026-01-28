@@ -71,7 +71,7 @@ mod tests {
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("hashed_password").unwrap().into(),
-            requires_2fa: false,
+            two_factor: "optional",
         };
         let res = store.add_user(user).await;
         assert!(res.is_ok());
@@ -83,7 +83,7 @@ mod tests {
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("hashed_password").unwrap().into(),
-            requires_2fa: false,
+            two_factor: "optional",
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
@@ -99,7 +99,7 @@ mod tests {
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("password").unwrap().into(),
-            requires_2fa: false,
+            two_factor: "optional",
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
