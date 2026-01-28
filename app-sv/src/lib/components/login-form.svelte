@@ -9,7 +9,6 @@
     FieldDescription,
   } from "$shadui/field";
 
-  let { baseUrl } = $props();
   let mode = $state<"login" | "signup">("login");
 
   let email = $state<string>("");

@@ -1,11 +1,8 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
+import { getAuthUrl } from "$lib/utils";
+import ky from 'ky'
 
-function getAuthUrl() {
-  return typeof process === "undefined"
-    ? "http://localhost:5170"
-    : (process.env.AUTH_URL ?? "http://localhost:5170");
-}
 
 export const load: PageServerLoad = async () => {
 
@@ -48,27 +45,25 @@ export const actions: Actions = {
 
     // Here you would typically send the data to your backend
     // For demonstration, we'll just log it to the console
-    const response = await fetch(`${authUrl}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const response = await ky.post(`${authUrl}/login`, {
+      json: {
         method: "email_password",
         email,
         password,
-      }),
+      },
     });
 
     if (response.ok) {
       const token: { token: string } = await response.json();
+      response.headers.getSetCookie()?.map((c) => { console.log(c) })
       if (token) {
-        cookies.set('session', token.token, {
+        cookies.set('jwt_auth_token', token.token, {
           httpOnly: true,
           sameSite: 'lax',
           path: "/"
         })
       }
+
       return redirect(302, '/app');
     }
   }

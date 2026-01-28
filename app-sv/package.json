@@ -42,6 +42,7 @@
 	},
 	"dependencies": {
 		"@types/node": "^25.0.10",
+		"ky": "^1.14.3",
 		"sonner-svelte": "^0.3.3",
 		"svelte-adapter-bun-next": "^1.0.3"
 	}

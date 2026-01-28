@@ -8,7 +8,7 @@
 	import { ModeWatcher } from "mode-watcher";
 	import { Toaster } from "svelte-sonner";
 	import LightSwitch from "$lib/components/light-switch.svelte";
-	let { children } = $props();
+	let { children, data } = $props();
 	const isMobile = new IsMobile();
 	const components: { title: string; href: string }[] = [
 		{
@@ -66,11 +66,19 @@
 			<NavigationMenu.Root>
 				<NavigationMenu.List class="flex-wrap">
 					<NavigationMenu.Item>
-						{@render ListItem({
-							title: "Login",
-							content: "Access your account",
-							href: "/login",
-						})}
+						{#if data.session}
+							{@render ListItem({
+								title: "Logout",
+								content: "Access your account",
+								href: "/logout",
+							})}
+						{:else}
+							{@render ListItem({
+								title: "Login",
+								content: "Access your account",
+								href: "/login",
+							})}
+						{/if}
 					</NavigationMenu.Item>
 				</NavigationMenu.List>
 			</NavigationMenu.Root>
