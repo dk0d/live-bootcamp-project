@@ -1,7 +1,7 @@
 # Multi-stage Bun build optimized for caching & minimal runtime size
 # Base Bun image (private ECR) - keep pinned for reproducibility
 # see all bun versions at https://hub.docker.com/r/oven/bun/tags
-FROM oven/bun:1.3.6-slim AS base 
+FROM oven/bun:1.3.8-slim AS base 
 
 WORKDIR /app
 
@@ -35,7 +35,7 @@ RUN bun run build
 ##############################
 # 3. Final runtime image 
 ##############################
-FROM oven/bun:1.3.6-slim AS release
+FROM oven/bun:1.3.8-slim AS release
 
 WORKDIR /app
 
