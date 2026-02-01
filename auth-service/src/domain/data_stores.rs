@@ -11,3 +11,9 @@ pub trait UserStore: Send + Sync + std::fmt::Debug {
         password: &Password,
     ) -> Result<bool, AuthApiError>;
 }
+
+pub trait BannedTokenStore: Send + Sync + std::fmt::Debug {
+    fn ban_token(&mut self, token: impl ToString) -> Result<(), AuthApiError>;
+    fn unban_token(&mut self, token: impl ToString) -> Result<(), AuthApiError>;
+    fn is_token_banned(&self, token: impl ToString) -> bool;
+}

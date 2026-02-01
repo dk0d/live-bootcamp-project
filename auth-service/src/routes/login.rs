@@ -1,9 +1,9 @@
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Json;
-use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
+use axum_extra::extract::cookie::Cookie;
 use serde::Serialize;
 use tracing::instrument;
 use utoipa::ToSchema;
@@ -12,8 +12,8 @@ use crate::domain::{Email, Password, UserStore};
 use crate::error::{AuthApiError, StatusCoded};
 use crate::state::AppState;
 
-use crate::utils::auth::generate_auth_cookie;
 use crate::utils::FormOrJson;
+use crate::utils::auth::generate_auth_cookie;
 
 #[derive(serde::Deserialize, Serialize, Debug, ToSchema)]
 #[serde(tag = "method", rename_all = "snake_case")]

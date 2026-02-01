@@ -5,26 +5,26 @@ use crate::error::AuthApiError;
 use crate::utils::auth::hash_password;
 
 #[derive(Debug, Clone)]
-pub struct HashMapUserUserStore {
+pub struct InMemoryUserStore {
     users: HashMap<Email, User>,
 }
 
-impl HashMapUserUserStore {
+impl InMemoryUserStore {
     pub fn new() -> Self {
-        HashMapUserUserStore {
+        InMemoryUserStore {
             users: HashMap::new(),
         }
     }
 }
 
-impl Default for HashMapUserUserStore {
+impl Default for InMemoryUserStore {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[async_trait::async_trait]
-impl UserStore for HashMapUserUserStore {
+impl UserStore for InMemoryUserStore {
     async fn add_user(&mut self, user: User) -> Result<(), AuthApiError> {
         if self.users.contains_key(&user.email) {
             return Err(AuthApiError::UserAlreadyExists);
@@ -63,15 +63,17 @@ impl UserStore for HashMapUserUserStore {
 
 #[cfg(test)]
 mod tests {
+    use crate::routes::TwoFactorStatus;
+
     use super::*;
 
     #[tokio::test]
     async fn test_add_user() {
-        let mut store = HashMapUserUserStore::new();
+        let mut store = InMemoryUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("hashed_password").unwrap().into(),
-            two_factor: "optional",
+            two_factor: TwoFactorStatus::Optional,
         };
         let res = store.add_user(user).await;
         assert!(res.is_ok());
@@ -79,36 +81,40 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_user() {
-        let mut store = HashMapUserUserStore::new();
+        let mut store = InMemoryUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("hashed_password").unwrap().into(),
-            two_factor: "optional",
+            two_factor: TwoFactorStatus::Optional,
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
-        assert!(store
-            .get_user(&Email::parse("me@you.com").unwrap())
-            .await
-            .is_ok());
+        assert!(
+            store
+                .get_user(&Email::parse("me@you.com").unwrap())
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
     async fn test_validate_user() {
-        let mut store = HashMapUserUserStore::new();
+        let mut store = InMemoryUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("password").unwrap().into(),
-            two_factor: "optional",
+            two_factor: TwoFactorStatus::Optional,
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
-        assert!(store
-            .validate_credentials(
-                &Email::parse("me@you.com").unwrap(),
-                &Password::parse("password").unwrap()
-            )
-            .await
-            .is_ok());
+        assert!(
+            store
+                .validate_credentials(
+                    &Email::parse("me@you.com").unwrap(),
+                    &Password::parse("password").unwrap()
+                )
+                .await
+                .is_ok()
+        );
     }
 }

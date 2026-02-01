@@ -1,10 +1,11 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
-use axum_extra::extract::{cookie::Cookie, CookieJar};
+use axum_extra::extract::{CookieJar, cookie::Cookie};
 use tracing::instrument;
 
+use crate::domain::BannedTokenStore;
 use crate::error::{AuthApiError, StatusCoded};
 use crate::state::AppState;
-use crate::utils::auth::{validate_token, Claims};
+use crate::utils::auth::{Claims, validate_token};
 
 async fn logout(state: &AppState, jar: CookieJar) -> Result<CookieJar, AuthApiError> {
     let cookie = jar
@@ -14,6 +15,8 @@ async fn logout(state: &AppState, jar: CookieJar) -> Result<CookieJar, AuthApiEr
     _ = validate_token::<Claims>(&token, &state.config.jwt.secret)
         .await
         .map_err(|_| AuthApiError::InvalidToken)?;
+    let mut banned = state.banned_tokens.write().await;
+    banned.ban_token(token)?;
     Ok(jar.remove(Cookie::from(state.config.jwt.cookie_name.clone())))
 }
 

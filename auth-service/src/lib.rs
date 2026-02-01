@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use tokio::net::TcpListener;
 
-use axum::{serve::Serve, Router};
+use axum::{Router, serve::Serve};
 
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
@@ -25,7 +25,8 @@ use utoipa_scalar::{Scalar, Servable};
 
 use crate::routes::build_app_router;
 
-use self::services::user_store::hash_map::HashMapUserUserStore;
+use self::services::banned_token::mem::InMemoryBannedTokenStore;
+use self::services::user_store::mem::InMemoryUserStore;
 
 #[derive(Debug)]
 pub struct Application {
@@ -47,7 +48,8 @@ impl Application {
         let assets_dir =
             ServeDir::new("assets").not_found_service(ServeFile::new("assets/404.html"));
 
-        let user_store = Arc::new(RwLock::new(HashMapUserUserStore::new()));
+        let user_store = Arc::new(RwLock::new(InMemoryUserStore::new()));
+        let banned_tokens = Arc::new(RwLock::new(InMemoryBannedTokenStore::new()));
 
         let mut allowed_origins = vec![
             format!("http://localhost:{}", config.server.port),
@@ -74,7 +76,7 @@ impl Application {
             )
             .allow_credentials(true);
 
-        let state = state::AppState::new(config, user_store);
+        let state = state::AppState::new(config, user_store, banned_tokens);
         let (router, api) = build_app_router(state).split_for_parts();
         let router = router
             .fallback_service(assets_dir)

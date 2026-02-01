@@ -1,10 +1,10 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use tracing::instrument;
-use utoipa::ToSchema;
-
+use crate::domain::BannedTokenStore;
 use crate::error::AuthApiError;
 use crate::state::AppState;
-use crate::utils::auth::{validate_token, Claims};
+use crate::utils::auth::{Claims, validate_token};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
+use tracing::instrument;
+use utoipa::ToSchema;
 
 #[derive(serde::Deserialize, ToSchema, Debug, Clone)]
 pub struct VerifyTokenRequest {
@@ -25,7 +25,11 @@ pub async fn verify_token_handler(
     State(state): State<AppState>,
     Json(body): Json<VerifyTokenRequest>,
 ) -> Result<impl IntoResponse, AuthApiError> {
-    // Placeholder for token verification logic
+    let banned = state.banned_tokens.read().await;
+
+    if banned.is_token_banned(&body.token) {
+        return Err(AuthApiError::Unauthorized);
+    }
 
     _ = validate_token::<Claims>(&body.token, &state.config.jwt.secret)
         .await

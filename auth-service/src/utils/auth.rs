@@ -1,6 +1,6 @@
 use axum_extra::extract::cookie::{Cookie, SameSite};
 
-use jsonwebtoken::{encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, encode};
 use serde::Deserialize;
 
 use crate::config::JwtConfig;
@@ -35,15 +35,14 @@ pub struct Claims {
 }
 
 fn create_auth_cookie(name: &str, token: String) -> Cookie<'static> {
-    let cookie = Cookie::build((name.to_string(), token))
+    Cookie::build((name.to_string(), token))
         .path("/")
         .http_only(true)
         .same_site(SameSite::Lax)
-        .build();
-    cookie
+        .build()
 }
 
-fn generate_auth_token(email: &Email, secret: &str) -> Result<String, GenerateTokenError> {
+pub fn generate_auth_token(email: &Email, secret: &str) -> Result<String, GenerateTokenError> {
     let exp = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::hours(24))
         .expect("valid timestamp")
@@ -128,7 +127,6 @@ pub fn generate_auth_cookie(
 
 #[cfg(test)]
 mod tests {
-
     use chrono::Utc;
 
     use super::*;
