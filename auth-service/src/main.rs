@@ -13,9 +13,9 @@ async fn main() -> anyhow::Result<()> {
         .merge(Toml::file("default.toml"))
         .merge(Env::prefixed("LR_").split("__"))
         .extract()?;
-    Env::prefixed("LR_").iter().for_each(|(k, v)| {
-        println!("{}: {}", k, v);
-    });
+    // Env::prefixed("LR_").iter().for_each(|(k, v)| {
+    //     println!("{}: {}", k, v);
+    // });
     logging::init(&config)?;
     let app = Application::build(&config).await?;
     app.run().await?;
