@@ -44,6 +44,19 @@ pub enum AuthApiError {
     #[error("User not found")]
     UserNotFound,
 
+    /// Two factor code not found
+    #[error("Two factor code not found")]
+    TwoFactorCodeNotFound,
+
+    #[error("Two factor code mismatch")]
+    TwoFactorCodeMismatch,
+
+    #[error("Failed to generate two factor code")]
+    TwoFactorCodeGenFailed,
+
+    #[error("Invalid login attempt id")]
+    InvalidLoginAttemptId,
+
     /// Invalid credentials provided
     #[error("Invalid credentials provided")]
     InvalidCredentials,
@@ -87,6 +100,10 @@ impl StatusCoded for AuthApiError {
             AuthApiError::UserNotFound => StatusCode::NOT_FOUND,
             AuthApiError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AuthApiError::InvalidToken => StatusCode::UNAUTHORIZED,
+            AuthApiError::TwoFactorCodeNotFound => StatusCode::NOT_FOUND,
+            AuthApiError::TwoFactorCodeMismatch => StatusCode::UNAUTHORIZED,
+            AuthApiError::TwoFactorCodeGenFailed => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthApiError::InvalidLoginAttemptId => StatusCode::BAD_REQUEST,
         }
     }
 }

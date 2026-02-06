@@ -59,6 +59,7 @@ jsonwebtoken = { version = "10.2.0", features = [
 ] }
 chrono = "0.4.43"
 axum-extra = { version = "0.12.5", features = ["cookie", "middleware"] }
+rand = { version = "0.9.2", features = ["serde"] }
 
 [dev-dependencies]
 fake = "=4.4.0"

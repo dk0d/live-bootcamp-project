@@ -156,8 +156,11 @@ impl TestApp {
         self.server.post("/logout")
     }
 
-    pub fn post_verify_2fa(&self) -> TestRequest {
-        self.server.post("/verify-2fa")
+    pub fn post_verify_2fa<Body>(&self, body: &Body) -> TestRequest
+    where
+        Body: serde::Serialize,
+    {
+        self.server.post("/verify-2fa").json(body)
     }
 
     pub fn post_verify_token<Body>(&self, body: &Body) -> TestRequest

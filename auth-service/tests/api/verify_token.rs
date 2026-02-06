@@ -39,7 +39,7 @@ async fn test_verify_token_401_if_banned_token() {
             "method": "email_password",
             "email": "user@test.com",
             "password": "StrongP@ssw0rd!",
-            "two_factor": "optional",
+            "two_factor": "none",
         }))
         .await;
 

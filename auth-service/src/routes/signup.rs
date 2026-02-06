@@ -1,27 +1,18 @@
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Json;
 use serde::Serialize;
 use tracing::instrument;
 use utoipa::ToSchema;
 
-use crate::domain::{Email, Password, User, UserStore};
+use crate::domain::{Email, Password, TwoFactorMethod, User, UserStore};
 use crate::error::AuthApiError;
 use crate::state::AppState;
 use crate::utils::FormOrJson;
 
 fn default_false() -> bool {
     false
-}
-
-#[derive(serde::Deserialize, Serialize, Debug, ToSchema, Default, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum TwoFactorStatus {
-    Required,
-
-    #[default]
-    Optional,
 }
 
 #[derive(serde::Deserialize, Serialize, Debug, ToSchema)]
@@ -32,8 +23,8 @@ pub enum SignupRequest {
     EmailPassword {
         email: String,
         password: String,
-        #[serde(default = "TwoFactorStatus::default")]
-        two_factor: TwoFactorStatus,
+        #[serde(default = "TwoFactorMethod::default")]
+        two_factor: TwoFactorMethod,
     },
 
     /// Signup using magic link sent to email
@@ -108,7 +99,7 @@ mod tests {
         let req = SignupRequest::EmailPassword {
             email: "testuser@hello.com".to_string(),
             password: "password123".to_string(),
-            two_factor: TwoFactorStatus::Optional,
+            two_factor: TwoFactorMethod::None,
         };
         let schema = serde_json::to_string_pretty(&req).unwrap();
         println!("SignupRequest Schema: {}", schema);

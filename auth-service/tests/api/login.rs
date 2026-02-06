@@ -1,4 +1,4 @@
-use fake::{faker, Fake};
+use fake::{Fake, faker};
 use reqwest::StatusCode;
 
 use crate::helpers::get_test_app;
@@ -123,4 +123,27 @@ async fn test_login_200_if_valid_credentials_and_2fa_disabled() {
         .get(&app.config.jwt.cookie_name)
         .expect("No auth cookie found");
     assert!(!auth_cookie.value().is_empty());
+}
+
+#[tokio::test]
+async fn test_login_206_if_valid_credentials_and_2fa_email() {
+    let app = get_test_app().await;
+    let random_email = get_random_email();
+    let signup_body = serde_json::json!({
+        "method": "email_password",
+        "email": random_email,
+        "password": "password123",
+        "two_factor": "email"
+    });
+
+    let response = app.post_signup(&signup_body).await;
+    assert_eq!(response.status_code(), StatusCode::CREATED);
+    let login_body = serde_json::json!({
+        "method": "email_password",
+        "email": random_email,
+        "password": "password123",
+    });
+
+    let response = app.post_login(&login_body).await;
+    assert_eq!(response.status_code(), StatusCode::PARTIAL_CONTENT);
 }

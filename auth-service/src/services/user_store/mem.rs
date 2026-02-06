@@ -63,7 +63,7 @@ impl UserStore for InMemoryUserStore {
 
 #[cfg(test)]
 mod tests {
-    use crate::routes::TwoFactorStatus;
+    use crate::domain::TwoFactorMethod;
 
     use super::*;
 
@@ -73,7 +73,7 @@ mod tests {
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("hashed_password").unwrap().into(),
-            two_factor: TwoFactorStatus::Optional,
+            two_factor: TwoFactorMethod::None,
         };
         let res = store.add_user(user).await;
         assert!(res.is_ok());
@@ -85,7 +85,7 @@ mod tests {
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("hashed_password").unwrap().into(),
-            two_factor: TwoFactorStatus::Optional,
+            two_factor: TwoFactorMethod::None,
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
@@ -103,7 +103,7 @@ mod tests {
         let user = User {
             email: "me@you.com".try_into().unwrap(),
             password: Password::parse("password").unwrap().into(),
-            two_factor: TwoFactorStatus::Optional,
+            two_factor: TwoFactorMethod::None,
         };
         _ = store.add_user(user).await;
         assert_eq!(store.users.len(), 1);
