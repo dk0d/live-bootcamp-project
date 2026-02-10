@@ -81,6 +81,7 @@ async fn handle_2fa(
         let emailer = &state.email_client.read().await;
         let template = LoginTemplate {
             email: email.as_ref(),
+            code: code.as_ref(),
             site_url: &state.config.app.url,
             redirect_url: &format!(
                 "{}?payload={}",

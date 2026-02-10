@@ -70,10 +70,11 @@ impl Default for AppConfig {
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum JwtKeySecret {
     Raw { value: String },
     ECDSA { pub_key: String, priv_key: String },
+    RSA { pub_key: String, priv_key: String },
 }
 
 impl Default for JwtKeySecret {
@@ -89,6 +90,7 @@ impl JwtKeySecret {
         match self {
             JwtKeySecret::Raw { .. } => jsonwebtoken::Algorithm::HS256,
             JwtKeySecret::ECDSA { .. } => jsonwebtoken::Algorithm::ES256,
+            JwtKeySecret::RSA { .. } => jsonwebtoken::Algorithm::RS256,
         }
     }
 }
@@ -103,9 +105,12 @@ impl Default for JwtConfig {
     fn default() -> Self {
         JwtConfig {
             cookie_name: "jwt_auth_token".to_string(),
-            secret: JwtKeySecret::Raw {
-                value: "really-long-super-secret-key-for-signing".to_string(),
-            },
+            secret: JwtKeySecret::RSA {
+                pub_key: "tests/jwt-test-rsa.pub".to_string(),
+                priv_key: "tests/jwt-test-rsa.pem".to_string(),
+            }, // secret: JwtKeySecret::Raw {
+               //     value: "really-long-super-secret-key-for-signing".to_string(),
+               // },
         }
     }
 }

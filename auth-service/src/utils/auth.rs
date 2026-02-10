@@ -10,7 +10,6 @@ use crate::config::{JwtConfig, JwtKeySecret};
 use crate::domain::{Email, LoginAttemptId};
 use crate::error::AuthApiError;
 use crate::state::AppState;
-use base64::engine::general_purpose::STANDARD;
 use jsonwebtoken::jwk::{JwkSet, KeyAlgorithm};
 
 pub fn hash_password(password: &str) -> Result<String, AuthApiError> {
@@ -57,48 +56,50 @@ pub struct TwoFAClaims {
 
 static KEYS: OnceCell<JwkSet> = OnceCell::const_new();
 
-fn get_decoding_key(secret: &JwtKeySecret) -> (jsonwebtoken::DecodingKey, jsonwebtoken::Algorithm) {
+fn get_decoding_key(secret: &JwtKeySecret) -> jsonwebtoken::DecodingKey {
     match &secret {
         JwtKeySecret::ECDSA { pub_key, .. } => {
             let key = std::fs::read_to_string(pub_key).expect("Failed to read Pub PEM key");
-            (
-                jsonwebtoken::DecodingKey::from_ec_pem(key.as_bytes()).expect("valid key"),
-                jsonwebtoken::Algorithm::ES256,
-            )
+            jsonwebtoken::DecodingKey::from_ec_pem(key.as_bytes()).expect("valid key")
         }
-        JwtKeySecret::Raw { value: secret } => (
-            jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
-            jsonwebtoken::Algorithm::HS256,
-        ),
+        JwtKeySecret::RSA { pub_key, .. } => {
+            let key = std::fs::read_to_string(pub_key).expect("Failed to read Pub PEM key");
+            jsonwebtoken::DecodingKey::from_rsa_pem(key.as_bytes()).expect("valid key")
+        }
+        JwtKeySecret::Raw { value: secret } => {
+            jsonwebtoken::DecodingKey::from_secret(secret.as_bytes())
+        }
     }
 }
 
-fn get_encoding_key(secret: &JwtKeySecret) -> (jsonwebtoken::EncodingKey, jsonwebtoken::Algorithm) {
+fn get_encoding_key(secret: &JwtKeySecret) -> jsonwebtoken::EncodingKey {
     match &secret {
         JwtKeySecret::ECDSA { priv_key, .. } => {
             let key = std::fs::read_to_string(priv_key).expect("Failed to read Priv PEM key");
-            (
-                jsonwebtoken::EncodingKey::from_ec_pem(key.as_bytes()).expect("valid key"),
-                jsonwebtoken::Algorithm::ES256,
-            )
+            jsonwebtoken::EncodingKey::from_ec_pem(key.as_bytes()).expect("valid key")
         }
-        JwtKeySecret::Raw { value: secret } => (
-            jsonwebtoken::EncodingKey::from_secret(secret.as_bytes()),
-            jsonwebtoken::Algorithm::HS256,
-        ),
+        JwtKeySecret::RSA { priv_key, .. } => {
+            let key = std::fs::read_to_string(priv_key).expect("Failed to read Priv PEM key");
+            jsonwebtoken::EncodingKey::from_rsa_pem(key.as_bytes()).expect("valid key")
+        }
+        JwtKeySecret::Raw { value: secret } => {
+            jsonwebtoken::EncodingKey::from_secret(secret.as_bytes())
+        }
     }
 }
 
 pub async fn get_jwks(state: &AppState) -> &'static JwkSet {
     KEYS.get_or_init(|| async {
         // let decode_key = jsonwebtoken::DecodingKey::from_secret(state.config.jwt.secret.as_bytes());
-        let (encode_key, alg) = get_encoding_key(&state.config.jwt.secret);
+        let encode_key = get_encoding_key(&state.config.jwt.secret);
+        let alg = state.config.jwt.secret.alg();
         // let encode_key = jsonwebtoken::EncodingKey::from_ec_pem(secret.as_bytes());
         let mut key =
             jsonwebtoken::jwk::Jwk::from_encoding_key(&encode_key, alg).expect("Valid Keys");
         key.common.key_algorithm = match alg {
             Algorithm::ES256 => Some(KeyAlgorithm::ES256),
             Algorithm::HS256 => Some(KeyAlgorithm::HS256),
+            Algorithm::RS256 => Some(KeyAlgorithm::RS256),
             _ => panic!("Failure to match keys"),
         };
         jsonwebtoken::jwk::JwkSet { keys: vec![key] }
@@ -172,7 +173,7 @@ fn generate_auth_token_with_claims<C>(
 where
     C: serde::Serialize,
 {
-    let (encoding_key, _) = get_encoding_key(secret);
+    let encoding_key = get_encoding_key(secret);
     encode(header, &claims, &encoding_key).map_err(GenerateTokenError::Encoding)
 }
 
@@ -189,7 +190,8 @@ pub async fn validate_token<C>(token: &str, config: &JwtConfig) -> Result<C, Gen
 where
     C: serde::de::DeserializeOwned,
 {
-    let (key, alg) = get_decoding_key(&config.secret);
+    let key = get_decoding_key(&config.secret);
+    let alg = config.secret.alg();
     jsonwebtoken::decode::<C>(token, &key, &Validation::new(alg))
         .map_err(GenerateTokenError::Decoding)
         .map(|data| data.claims)
@@ -280,8 +282,30 @@ mod tests {
     async fn test_auth_validate_token_valid_ecdsa() {
         let config = JwtConfig {
             secret: JwtKeySecret::ECDSA {
-                pub_key: "tests/jwt-test.pub".to_string(),
-                priv_key: "tests/jwt-test.pem".to_string(),
+                pub_key: "tests/jwt-test-ecdsa.pub".to_string(),
+                priv_key: "tests/jwt-test-ecdsa.pem".to_string(),
+            },
+            cookie_name: JWT_COOKIE_NAME.to_string(),
+        };
+        let email = Email::parse("test@example.com").unwrap();
+        let token = generate_auth_token(&email, &config.secret).expect("valid token");
+        let result: Claims = validate_token(&token, &config).await.expect("valid token");
+        assert_eq!(result.sub, "test@example.com");
+
+        let exp = Utc::now()
+            .checked_add_signed(chrono::Duration::try_minutes(9).expect("valid duration"))
+            .expect("valid timestamp")
+            .timestamp();
+
+        assert!(result.exp > exp as usize);
+    }
+
+    #[tokio::test]
+    async fn test_auth_validate_token_valid_rsa() {
+        let config = JwtConfig {
+            secret: JwtKeySecret::RSA {
+                pub_key: "tests/jwt-test-rsa.pub".to_string(),
+                priv_key: "tests/jwt-test-rsa.pem".to_string(),
             },
             cookie_name: JWT_COOKIE_NAME.to_string(),
         };

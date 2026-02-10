@@ -10,11 +10,9 @@
   } from "$shadui/field";
 
   let mode = $state<"login" | "signup">("login");
-
   let email = $state<string>("");
   let password = $state<string>("");
   let confirmPassword = $state<string>("");
-  // let errorMessage = $state<string | null>(null);
 
   // async function handleSubmit(event: Event) {
   //   event.preventDefault();
