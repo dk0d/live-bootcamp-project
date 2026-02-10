@@ -31,7 +31,7 @@ pub async fn verify_token_handler(
         return Err(AuthApiError::Unauthorized);
     }
 
-    _ = validate_token::<Claims>(&body.token, &state.config.jwt.secret)
+    _ = validate_token::<Claims>(&body.token, &state.config.jwt)
         .await
         .map_err(|_| AuthApiError::InvalidToken)?;
 

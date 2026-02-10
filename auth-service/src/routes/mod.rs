@@ -2,6 +2,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 mod health;
+mod jwks;
 mod login;
 mod logout;
 mod signup;
@@ -9,6 +10,7 @@ mod verify_2fa;
 mod verify_token;
 
 pub use health::*;
+pub use jwks::*;
 pub use login::*;
 pub use logout::*;
 pub use signup::*;
@@ -27,6 +29,7 @@ pub fn build_app_router(state: AppState) -> OpenApiRouter {
         .routes(routes!(login_handler))
         .routes(routes!(signup_handler))
         .routes(routes!(logout_handler))
+        .routes(routes!(jwks_handler))
         .routes(routes!(verify_2fa_handler))
         .routes(routes!(verify_token_handler))
         .routes(routes!(readyz))
