@@ -1,5 +1,7 @@
 use axum_extra::extract::cookie::{Cookie, SameSite};
 
+use base64::Engine;
+use base64::engine::GeneralPurpose;
 use jsonwebtoken::{Algorithm, Header, Validation, encode};
 use serde::Deserialize;
 use tokio::sync::OnceCell;
@@ -8,6 +10,7 @@ use crate::config::{JwtConfig, JwtKeySecret};
 use crate::domain::{Email, LoginAttemptId};
 use crate::error::AuthApiError;
 use crate::state::AppState;
+use base64::engine::general_purpose::STANDARD;
 use jsonwebtoken::jwk::{JwkSet, KeyAlgorithm};
 
 pub fn hash_password(password: &str) -> Result<String, AuthApiError> {
@@ -151,7 +154,14 @@ pub fn generate_2fa_token(
         email: email.clone(),
     };
     let header = get_jwt_header(secret);
-    generate_auth_token_with_claims::<TwoFAClaims>(&header, &claims, secret)
+    let token = generate_auth_token_with_claims::<TwoFAClaims>(&header, &claims, secret)?;
+    let mut buf = String::new();
+    let engine = GeneralPurpose::new(
+        &base64::alphabet::URL_SAFE,
+        base64::engine::general_purpose::PAD,
+    );
+    engine.encode_string(&token, &mut buf);
+    Ok(buf)
 }
 
 fn generate_auth_token_with_claims<C>(
