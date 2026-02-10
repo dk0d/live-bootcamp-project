@@ -18,7 +18,7 @@ fn gen_code() -> Result<String, AuthApiError> {
     let mut rng = rand::rng();
     let distribution = Uniform::new(0, 10).map_err(|_| AuthApiError::TwoFactorCodeGenFailed)?;
     let code = (0..6)
-        .map(|_| rng.sample(&distribution).to_string())
+        .map(|_| rng.sample(distribution).to_string())
         .collect();
     Ok(code)
 }
