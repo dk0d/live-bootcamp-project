@@ -52,8 +52,6 @@ services:
   # used for local dev testing of emails from the server
   mailpit:
     image: axllent/mailpit
-    profiles:
-      - infra
     container_name: mailpit
     restart: unless-stopped
     volumes:

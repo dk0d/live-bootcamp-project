@@ -9,4 +9,16 @@ allowed_origins = ['http://localhost:5173']
 
 [jwt]
 cookie_name = 'jwt_auth_token'
-secret = 'your_jwt_secret_key_here'
+
+
+[jwt.secret]
+# type = "raw"
+# value = "some string"
+#
+# or 
+#
+# type = "ecdsa"
+# pub_key = "filepath"
+# priv_key = "filepath"
+type = "raw"
+value = 'change_me'

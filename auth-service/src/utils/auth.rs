@@ -1,11 +1,14 @@
 use axum_extra::extract::cookie::{Cookie, SameSite};
 
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, encode};
+use jsonwebtoken::{Algorithm, Header, Validation, encode};
 use serde::Deserialize;
+use tokio::sync::OnceCell;
 
-use crate::config::JwtConfig;
-use crate::domain::Email;
+use crate::config::{JwtConfig, JwtKeySecret};
+use crate::domain::{Email, LoginAttemptId};
 use crate::error::AuthApiError;
+use crate::state::AppState;
+use jsonwebtoken::jwk::{JwkSet, KeyAlgorithm};
 
 pub fn hash_password(password: &str) -> Result<String, AuthApiError> {
     // FIXME: Replace with real hashing logic
@@ -34,6 +37,72 @@ pub struct Claims {
     exp: usize,
 }
 
+/// Claims for 2FA tokens, which include the login attempt ID and email
+///
+/// This is used in the 2FA redirect_url {url}?payload={jwt}
+///
+/// and the landing site can validate the token and grab the email and login attempt ID
+/// to complete the 2FA flow
+///
+/// The exp claim is used to ensure the token is only valid for a short period of time (e.g. 15 minutes)
+#[derive(serde::Serialize, Deserialize, Debug)]
+pub struct TwoFAClaims {
+    sub: LoginAttemptId,
+    exp: usize,
+    email: Email,
+}
+
+static KEYS: OnceCell<JwkSet> = OnceCell::const_new();
+
+fn get_decoding_key(secret: &JwtKeySecret) -> (jsonwebtoken::DecodingKey, jsonwebtoken::Algorithm) {
+    match &secret {
+        JwtKeySecret::ECDSA { pub_key, .. } => {
+            let key = std::fs::read_to_string(pub_key).expect("Failed to read Pub PEM key");
+            (
+                jsonwebtoken::DecodingKey::from_ec_pem(key.as_bytes()).expect("valid key"),
+                jsonwebtoken::Algorithm::ES256,
+            )
+        }
+        JwtKeySecret::Raw { value: secret } => (
+            jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
+            jsonwebtoken::Algorithm::HS256,
+        ),
+    }
+}
+
+fn get_encoding_key(secret: &JwtKeySecret) -> (jsonwebtoken::EncodingKey, jsonwebtoken::Algorithm) {
+    match &secret {
+        JwtKeySecret::ECDSA { priv_key, .. } => {
+            let key = std::fs::read_to_string(priv_key).expect("Failed to read Priv PEM key");
+            (
+                jsonwebtoken::EncodingKey::from_ec_pem(key.as_bytes()).expect("valid key"),
+                jsonwebtoken::Algorithm::ES256,
+            )
+        }
+        JwtKeySecret::Raw { value: secret } => (
+            jsonwebtoken::EncodingKey::from_secret(secret.as_bytes()),
+            jsonwebtoken::Algorithm::HS256,
+        ),
+    }
+}
+
+pub async fn get_jwks(state: &AppState) -> &'static JwkSet {
+    KEYS.get_or_init(|| async {
+        // let decode_key = jsonwebtoken::DecodingKey::from_secret(state.config.jwt.secret.as_bytes());
+        let (encode_key, alg) = get_encoding_key(&state.config.jwt.secret);
+        // let encode_key = jsonwebtoken::EncodingKey::from_ec_pem(secret.as_bytes());
+        let mut key =
+            jsonwebtoken::jwk::Jwk::from_encoding_key(&encode_key, alg).expect("Valid Keys");
+        key.common.key_algorithm = match alg {
+            Algorithm::ES256 => Some(KeyAlgorithm::ES256),
+            Algorithm::HS256 => Some(KeyAlgorithm::HS256),
+            _ => panic!("Failure to match keys"),
+        };
+        jsonwebtoken::jwk::JwkSet { keys: vec![key] }
+    })
+    .await
+}
+
 fn create_auth_cookie(name: &str, token: String) -> Cookie<'static> {
     Cookie::build((name.to_string(), token))
         .path("/")
@@ -42,76 +111,84 @@ fn create_auth_cookie(name: &str, token: String) -> Cookie<'static> {
         .build()
 }
 
-pub fn generate_auth_token(email: &Email, secret: &str) -> Result<String, GenerateTokenError> {
+pub fn get_jwt_header(secret: &JwtKeySecret) -> jsonwebtoken::Header {
+    let mut header = jsonwebtoken::Header::new(secret.alg());
+    header.typ = Some("jwt".to_string());
+    header
+}
+
+pub fn generate_auth_token(
+    email: &Email,
+    secret: &JwtKeySecret,
+) -> Result<String, GenerateTokenError> {
     let exp = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::hours(24))
         .expect("valid timestamp")
         .timestamp() as usize;
+
     let claims = Claims {
         sub: email.as_ref().to_string(),
         exp,
     };
-    generate_auth_token_with_claims::<Claims>(&claims, secret)
+
+    let header = get_jwt_header(secret);
+
+    generate_auth_token_with_claims::<Claims>(&header, &claims, secret)
+}
+
+pub fn generate_2fa_token(
+    id: &LoginAttemptId,
+    email: &Email,
+    secret: &JwtKeySecret,
+) -> Result<String, GenerateTokenError> {
+    let exp = chrono::Utc::now()
+        .checked_add_signed(chrono::Duration::minutes(5))
+        .expect("valid timestamp")
+        .timestamp() as usize;
+    let claims = TwoFAClaims {
+        sub: id.clone(),
+        exp,
+        email: email.clone(),
+    };
+    let header = get_jwt_header(secret);
+    generate_auth_token_with_claims::<TwoFAClaims>(&header, &claims, secret)
 }
 
 fn generate_auth_token_with_claims<C>(
+    header: &Header,
     claims: &C,
-    secret: &str,
+    secret: &JwtKeySecret,
 ) -> Result<String, GenerateTokenError>
 where
     C: serde::Serialize,
 {
-    encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(secret.as_ref()),
-    )
-    .map_err(GenerateTokenError::Encoding)
+    let (encoding_key, _) = get_encoding_key(secret);
+    encode(header, &claims, &encoding_key).map_err(GenerateTokenError::Encoding)
 }
 
-fn create_token(claims: &Claims, secret: &str) -> Result<String, GenerateTokenError> {
-    encode(
-        &Header::default(),
-        claims,
-        &EncodingKey::from_secret(secret.as_ref()),
-    )
-    .map_err(GenerateTokenError::Encoding)
-}
+// fn create_token(claims: &Claims, secret: &str) -> Result<String, GenerateTokenError> {
+//     encode(
+//         &Header::default(),
+//         claims,
+//         &EncodingKey::from_secret(secret.as_ref()),
+//     )
+//     .map_err(GenerateTokenError::Encoding)
+// }
 
-pub async fn validate_token<C>(token: &str, secret: &str) -> Result<C, GenerateTokenError>
+pub async fn validate_token<C>(token: &str, config: &JwtConfig) -> Result<C, GenerateTokenError>
 where
     C: serde::de::DeserializeOwned,
 {
-    jsonwebtoken::decode::<C>(
-        token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        &Validation::default(),
-    )
-    .map_err(GenerateTokenError::Decoding)
-    .map(|data| data.claims)
-}
-
-pub async fn validate_token_validator<C>(
-    token: &str,
-    secret: &str,
-    validator: &Validation,
-) -> Result<C, GenerateTokenError>
-where
-    C: serde::de::DeserializeOwned,
-{
-    jsonwebtoken::decode::<C>(
-        token,
-        &DecodingKey::from_secret(secret.as_bytes()),
-        validator,
-    )
-    .map_err(GenerateTokenError::Decoding)
-    .map(|data| data.claims)
+    let (key, alg) = get_decoding_key(&config.secret);
+    jsonwebtoken::decode::<C>(token, &key, &Validation::new(alg))
+        .map_err(GenerateTokenError::Decoding)
+        .map(|data| data.claims)
 }
 
 pub fn generate_auth_cookie_raw(
     email: &Email,
     name: &str,
-    secret: &str,
+    secret: &JwtKeySecret,
 ) -> Result<Cookie<'static>, GenerateTokenError> {
     let token = generate_auth_token(email, secret)?;
     Ok(create_auth_cookie(name, token))
@@ -136,7 +213,10 @@ mod tests {
     #[tokio::test]
     async fn test_auth_generate_cookie() {
         let email = Email::parse("test@example.com").unwrap();
-        let cookie = generate_auth_cookie_raw(&email, JWT_COOKIE_NAME, JWT_SECRET).unwrap();
+        let secret = JwtKeySecret::Raw {
+            value: JWT_SECRET.to_string(),
+        };
+        let cookie = generate_auth_cookie_raw(&email, JWT_COOKIE_NAME, &secret).unwrap();
         assert_eq!(cookie.name(), JWT_COOKIE_NAME.to_string());
         assert_eq!(cookie.value().split('.').count(), 3);
         assert_eq!(cookie.path(), Some("/"));
@@ -158,17 +238,46 @@ mod tests {
     #[tokio::test]
     async fn test_auth_generate_token() {
         let email = Email::parse("test@example.com").unwrap();
-        let result = generate_auth_token(&email, JWT_SECRET).unwrap();
+        let secret = JwtKeySecret::Raw {
+            value: JWT_SECRET.to_string(),
+        };
+        let result = generate_auth_token(&email, &secret).unwrap();
         assert_eq!(result.split('.').count(), 3);
     }
 
     #[tokio::test]
     async fn test_auth_validate_token_valid() {
+        let config = JwtConfig {
+            secret: JwtKeySecret::Raw {
+                value: JWT_SECRET.to_string(),
+            },
+            cookie_name: JWT_COOKIE_NAME.to_string(),
+        };
         let email = Email::parse("test@example.com").unwrap();
-        let token = generate_auth_token(&email, JWT_SECRET).expect("valid token");
-        let result: Claims = validate_token(&token, JWT_SECRET)
-            .await
-            .expect("valid token");
+        let token = generate_auth_token(&email, &config.secret).expect("valid token");
+        let result: Claims = validate_token(&token, &config).await.expect("valid token");
+        assert_eq!(result.sub, "test@example.com");
+
+        let exp = Utc::now()
+            .checked_add_signed(chrono::Duration::try_minutes(9).expect("valid duration"))
+            .expect("valid timestamp")
+            .timestamp();
+
+        assert!(result.exp > exp as usize);
+    }
+
+    #[tokio::test]
+    async fn test_auth_validate_token_valid_ecdsa() {
+        let config = JwtConfig {
+            secret: JwtKeySecret::ECDSA {
+                pub_key: "tests/jwt-test.pub".to_string(),
+                priv_key: "tests/jwt-test.pem".to_string(),
+            },
+            cookie_name: JWT_COOKIE_NAME.to_string(),
+        };
+        let email = Email::parse("test@example.com").unwrap();
+        let token = generate_auth_token(&email, &config.secret).expect("valid token");
+        let result: Claims = validate_token(&token, &config).await.expect("valid token");
         assert_eq!(result.sub, "test@example.com");
 
         let exp = Utc::now()
@@ -182,7 +291,13 @@ mod tests {
     #[tokio::test]
     async fn test_auth_validate_token_invalid() {
         let token = "invalid_token".to_owned();
-        let result = validate_token::<Claims>(&token, JWT_SECRET).await;
+        let config = JwtConfig {
+            secret: JwtKeySecret::Raw {
+                value: JWT_SECRET.to_string(),
+            },
+            cookie_name: JWT_COOKIE_NAME.to_string(),
+        };
+        let result = validate_token::<Claims>(&token, &config).await;
         assert!(result.is_err());
     }
 }

@@ -44,3 +44,11 @@ tasks:
   stop: 
     cmds:
       - docker compose -p rusty stop
+
+  up:mail: 
+    cmds:
+      - docker compose -p rusty up mailpit -d 
+      
+  down:mail: 
+    cmds:
+      - docker compose -p rusty down mailpit

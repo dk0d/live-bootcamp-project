@@ -1,2 +1,4 @@
 /target
 .env
+.jwt.pub
+.jwt.pem

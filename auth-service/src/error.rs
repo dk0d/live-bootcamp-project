@@ -33,6 +33,10 @@ pub enum AuthApiError {
     #[error("Invalid email: {0}")]
     InvalidEmail(String),
 
+    /// Error for invalid email format
+    #[error("Email send error: {0}")]
+    EmailSendError(String),
+
     #[error("Missing field: {0}")]
     MissingField(String),
 
@@ -104,6 +108,7 @@ impl StatusCoded for AuthApiError {
             AuthApiError::TwoFactorCodeMismatch => StatusCode::UNAUTHORIZED,
             AuthApiError::TwoFactorCodeGenFailed => StatusCode::INTERNAL_SERVER_ERROR,
             AuthApiError::InvalidLoginAttemptId => StatusCode::BAD_REQUEST,
+            AuthApiError::EmailSendError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

@@ -26,6 +26,7 @@ use utoipa_scalar::{Scalar, Servable};
 use crate::routes::build_app_router;
 
 use self::services::banned_token::mem::InMemoryBannedTokenStore;
+use self::services::email::Emailer;
 use self::services::two_factor_code::mem::InMemoryTwoFactorCodeStore;
 use self::services::user_store::mem::InMemoryUserStore;
 
@@ -52,6 +53,7 @@ impl Application {
         let user_store = Arc::new(RwLock::new(InMemoryUserStore::new()));
         let banned_tokens = Arc::new(RwLock::new(InMemoryBannedTokenStore::new()));
         let two_factor_codes = Arc::new(RwLock::new(InMemoryTwoFactorCodeStore::default()));
+        let emailer = Arc::new(RwLock::new(Emailer::new(&config.email)));
 
         let mut allowed_origins = vec![
             format!("http://localhost:{}", config.server.port),
@@ -78,7 +80,8 @@ impl Application {
             )
             .allow_credentials(true);
 
-        let state = state::AppState::new(config, user_store, banned_tokens, two_factor_codes);
+        let state =
+            state::AppState::new(config, user_store, banned_tokens, two_factor_codes, emailer);
         let (router, api) = build_app_router(state).split_for_parts();
         let router = router
             .fallback_service(assets_dir)

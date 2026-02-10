@@ -1,3 +1,5 @@
+use crate::services::email::EmailConfig;
+
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct TelemetryConfig {
     #[serde(default = "default_false")]
@@ -50,16 +52,60 @@ impl Default for ServerConfig {
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]
+pub struct AppConfig {
+    #[serde(default = "default_app_url")]
+    pub url: String,
+
+    #[serde(default = "default_auth_redirect_url")]
+    pub two_factor_redirect_url: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            url: default_app_url(),
+            two_factor_redirect_url: default_auth_redirect_url(),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
+pub enum JwtKeySecret {
+    Raw { value: String },
+    ECDSA { pub_key: String, priv_key: String },
+}
+
+impl Default for JwtKeySecret {
+    fn default() -> Self {
+        Self::Raw {
+            value: "CHANGE_ME_TO_SOMETHING_GOOD".to_string(),
+        }
+    }
+}
+
+impl JwtKeySecret {
+    pub fn alg(&self) -> jsonwebtoken::Algorithm {
+        match self {
+            JwtKeySecret::Raw { .. } => jsonwebtoken::Algorithm::HS256,
+            JwtKeySecret::ECDSA { .. } => jsonwebtoken::Algorithm::ES256,
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct JwtConfig {
     pub cookie_name: String,
-    pub secret: String,
+    pub secret: JwtKeySecret,
 }
 
 impl Default for JwtConfig {
     fn default() -> Self {
         JwtConfig {
             cookie_name: "jwt_auth_token".to_string(),
-            secret: "really-long-super-secret-key-for-signing".to_string(),
+            secret: JwtKeySecret::Raw {
+                value: "really-long-super-secret-key-for-signing".to_string(),
+            },
         }
     }
 }
@@ -77,6 +123,12 @@ pub struct Config {
 
     #[serde(default = "JwtConfig::default")]
     pub jwt: JwtConfig,
+
+    #[serde(default = "EmailConfig::default")]
+    pub email: EmailConfig,
+
+    #[serde(default = "AppConfig::default")]
+    pub app: AppConfig,
 }
 
 fn default_allowed_origins() -> Option<Vec<String>> {
@@ -97,4 +149,12 @@ fn default_false() -> bool {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_auth_redirect_url() -> String {
+    return "http://localhost:5173/login/2fa".to_string();
+}
+
+fn default_app_url() -> String {
+    return "http://localhost:5173".to_string();
 }

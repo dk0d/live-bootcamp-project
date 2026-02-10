@@ -50,16 +50,11 @@ async fn test_verify_2fa_200() {
     let response_body: LoginResponse = response.json::<LoginResponse>();
     assert!(matches!(response_body, LoginResponse::TwoFactor { .. }));
 
-    if let LoginResponse::TwoFactor {
-        login_attempt_id,
-        code,
-        ..
-    } = response_body
-    {
+    if let LoginResponse::TwoFactor { id, code, .. } = response_body {
         let body = serde_json::json!({
             "method": "email",
             "email": "testuser200@me.com",
-            "login_attempt_id": login_attempt_id,
+            "id": id,
             "code": code,
         });
         let response = app.post_verify_2fa(&body).await;
@@ -90,35 +85,30 @@ async fn test_verify_2fa_401() {
     let response_body: LoginResponse = response.json::<LoginResponse>();
     assert!(matches!(response_body, LoginResponse::TwoFactor { .. }));
 
-    if let LoginResponse::TwoFactor {
-        code,
-        login_attempt_id,
-        ..
-    } = response_body
-    {
+    if let LoginResponse::TwoFactor { code, id, .. } = response_body {
         let failure_cases = [
             serde_json::json!({
                 "method": "email",
                 "email": "testuser401@me.com",
-                "login_attempt_id": login_attempt_id,
+                "id": id,
                 "code": "000000",
             }),
             serde_json::json!({
                 "method": "email",
                 "email": "wrong_email@me.com",
-                "login_attempt_id": login_attempt_id,
+                "id": id,
                 "code": code,
             }),
             serde_json::json!({
                 "method": "email",
                 "email": "testuser401@me.com",
-                "login_attempt_id": "bad-id",
+                "id": "bad-id",
                 "code": code,
             }),
             serde_json::json!({
                 "method": "email",
                 "email": "testuser401@me.com",
-                "login_attempt_id": "dc5b25ca-1d7b-4827-8843-c2d1ab9d0f7f",
+                "id": "dc5b25ca-1d7b-4827-8843-c2d1ab9d0f7f",
                 "code": code,
             }),
         ];
