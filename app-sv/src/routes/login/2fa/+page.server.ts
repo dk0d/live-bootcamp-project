@@ -35,27 +35,26 @@ export const load: PageServerLoad = async ({ request, url }) => {
 };
 
 export const actions: Actions = {
-  default: async ({ request, cookies, setHeaders }) => {
+  confirm: async ({ request, cookies }) => {
     const data = await request.formData();
     const email = data.get("email");
-    const password = data.get("password");
+    const id = data.get("id");
+    const method = data.get("method");
+    const code = data.get("code");
     const authUrl = getAuthUrl();
-
-    // Here you would typically send the data to your backend
-    // For demonstration, we'll just log it to the console
-    const response = await ky.post(`${authUrl}/login`, {
+    const response = await ky.post(`${authUrl}/verify-2fa`, {
       json: {
-        method: "email_password",
+        method,
         email,
-        password,
+        code: code,
+        id,
       },
     });
-
     if (response.ok) {
       const token: { token: string } = await response.json();
-      response.headers.getSetCookie()?.map((c) => {
-        console.log(c);
-      });
+      // response.headers.getSetCookie()?.map((c) => {
+      //   console.log(c);
+      // });
       if (token) {
         cookies.set("jwt_auth_token", token.token, {
           httpOnly: true,

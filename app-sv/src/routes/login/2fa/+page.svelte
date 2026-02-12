@@ -18,13 +18,12 @@
     {#if data.email}
       <div>{data.email}</div>
       <SuperDebug {data} />
-      <form method="POST" action="">
-        <input hidden name="method" value="email_password" />
-        <input hidden name="two_factor" value="optional" />
+      <form method="POST" action="?/confirm">
+        <input hidden name="method" value="email" />
         <input hidden name="email" value={data.email} />
         <input hidden name="id" value={data.id} />
         <div class="flex justify-center w-full">
-          <InputOTP.Root maxlength={6} pattern="\d" name="code">
+          <InputOTP.Root maxlength={6} pattern="\d+" name="code">
             {#snippet children({ cells })}
               <InputOTP.Group>
                 {#each cells.slice(0, 6) as cell (cell)}

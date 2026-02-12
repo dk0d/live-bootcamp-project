@@ -51,9 +51,7 @@ pub enum LoginResponse {
     TwoFactor {
         email: Email,
         method: TwoFactorMethod,
-        message: String,
-        id: LoginAttemptId,
-        code: TwoFactorCode,
+        url: String,
     },
 }
 
@@ -66,6 +64,24 @@ impl LoginResponse {
     }
 }
 
+#[derive(Serialize, ToSchema, serde::Deserialize, Debug)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum LoginResult {
+    #[schema(title = "Auth Token")]
+    Success { email: Email, token: String },
+
+    /// Two Factor assumes user has validated primary credentials
+    /// i.e. email/password
+    #[schema(title = "Two Factor Authentication Required")]
+    TwoFactor {
+        email: Email,
+        method: TwoFactorMethod,
+        message: String,
+        id: LoginAttemptId,
+        code: TwoFactorCode,
+    },
+}
+
 async fn handle_2fa(
     jar: CookieJar,
     email: &Email,
@@ -76,26 +92,33 @@ async fn handle_2fa(
     CookieJar,
     Result<(StatusCode, Json<LoginResponse>), AuthApiError>,
 ) {
-    if let Ok(mfa_payload) = generate_2fa_token(attempt_id, email, &state.config.jwt.secret) {
-        // send email
-        let emailer = &state.email_client.read().await;
-        let template = LoginTemplate {
-            email: email.as_ref(),
-            code: code.as_ref(),
-            site_url: &state.config.app.url,
-            redirect_url: &format!(
+    tracing::info!("Handling 2FA for email: {}", &email.as_ref());
+
+    let redirect =
+        if let Ok(mfa_payload) = generate_2fa_token(attempt_id, email, &state.config.jwt.secret) {
+            // send email
+            let redirect_url = format!(
                 "{}?payload={}",
                 &state.config.app.two_factor_redirect_url, mfa_payload,
-            ),
+            );
+            let emailer = &state.email_client.read().await;
+            let template = LoginTemplate {
+                email: email.as_ref(),
+                code: code.as_ref(),
+                site_url: &state.config.app.url,
+                redirect_url: &redirect_url,
+            };
+            let content = template.render().expect("valid html");
+            if let Err(e) = emailer.send_email(email, "Confirm Login", &content).await {
+                tracing::warn!("Unable to send mail: {}", &e);
+                // FIXME: what should happen if email failes to send in two_factor case
+                // - need retry, and/or ability to trigger resend emails
+                // return (jar, Err(e));
+            }
+            redirect_url
+        } else {
+            "".to_string()
         };
-        let content = template.render().expect("valid html");
-        if let Err(e) = emailer.send_email(email, "Confirm Login", &content).await {
-            tracing::warn!("Unable to send mail: {}", &e);
-            // FIXME: what should happen if email failes to send in two_factor case
-            // - need retry, and/or ability to trigger resend emails
-            // return (jar, Err(e));
-        }
-    }
 
     (
         jar,
@@ -104,10 +127,7 @@ async fn handle_2fa(
             Json(LoginResponse::TwoFactor {
                 email: email.clone(),
                 method: TwoFactorMethod::Email,
-                message: "Two-factor authentication required. Please complete the 2FA step."
-                    .to_string(),
-                id: attempt_id.clone(),
-                code: code.clone(),
+                url: redirect,
             }),
         )),
     )
@@ -140,7 +160,7 @@ fn handle_successful_login(
     )
 }
 
-async fn login(state: &AppState, body: &LoginRequest) -> Result<LoginResponse, AuthApiError> {
+async fn login(state: &AppState, body: &LoginRequest) -> Result<LoginResult, AuthApiError> {
     match &body {
         LoginRequest::EmailPassword { email, password } => {
             let email = Email::parse(email)?;
@@ -159,7 +179,7 @@ async fn login(state: &AppState, body: &LoginRequest) -> Result<LoginResponse, A
             if let TwoFactorMethod::Email = user.two_factor {
                 let mut codes = state.two_factor.write().await;
                 let (login_attempt_id, code) = codes.new_login_attempt(&email, &user.two_factor)?;
-                Ok(LoginResponse::TwoFactor {
+                Ok(LoginResult::TwoFactor {
                     email: user.email.clone(),
                     method: user.two_factor,
                     message: "Check your email".to_string(),
@@ -167,7 +187,7 @@ async fn login(state: &AppState, body: &LoginRequest) -> Result<LoginResponse, A
                     code,
                 })
             } else {
-                Ok(LoginResponse::Success {
+                Ok(LoginResult::Success {
                     email,
                     token: "".to_string(),
                 }) // token will be generated in handler
@@ -200,9 +220,9 @@ pub async fn login_handler(
 ) -> (CookieJar, Result<impl IntoResponse, AuthApiError>) {
     let result = login(&state, &body).await;
     match result {
-        Ok(LoginResponse::Success { email, .. }) => handle_successful_login(jar, &email, &state),
-        Ok(LoginResponse::TwoFactor {
-            id, code, email, ..
+        Ok(LoginResult::Success { email, .. }) => handle_successful_login(jar, &email, &state),
+        Ok(LoginResult::TwoFactor {
+            id, email, code, ..
         }) => handle_2fa(jar, &email, &state, &id, &code).await,
         Err(error) => (jar, (Err(error))),
     }

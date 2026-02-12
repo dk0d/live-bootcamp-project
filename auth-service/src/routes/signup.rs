@@ -73,7 +73,7 @@ pub struct SignupResponse {
         (status = 400, description = "Bad Request")
     )
 )]
-#[instrument]
+#[instrument(skip(state, request))]
 pub async fn signup_handler(
     State(state): State<AppState>,
     FormOrJson(request): FormOrJson<SignupRequest>,

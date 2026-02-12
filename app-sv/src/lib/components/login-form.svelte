@@ -8,11 +8,14 @@
     FieldLabel,
     FieldDescription,
   } from "$shadui/field";
+  import { Checkbox } from "$shadui/checkbox";
+  import { Switch } from "$shadui/switch";
 
   let mode = $state<"login" | "signup">("login");
   let email = $state<string>("");
   let password = $state<string>("");
   let confirmPassword = $state<string>("");
+  let twoFactor = $state<"none" | "email">("none");
 
   // async function handleSubmit(event: Event) {
   //   event.preventDefault();
@@ -67,7 +70,6 @@
   <Card.Content>
     <form method="POST" action="/login?/{mode}">
       <input hidden name="method" value="email_password" />
-      <input hidden name="two_factor" value="optional" />
       <FieldGroup>
         <Field>
           <FieldLabel for="email">Email</FieldLabel>
@@ -84,9 +86,9 @@
         <Field>
           <div class="flex items-center">
             <FieldLabel for="password">Password</FieldLabel>
-            <a href="##" class="ms-auto inline-block text-sm underline">
-              Forgot your password?
-            </a>
+            <!-- <a href="##" class="ms-auto inline-block text-sm underline"> -->
+            <!--   Forgot your password? -->
+            <!-- </a> -->
           </div>
           <Input
             id="password"
@@ -109,6 +111,25 @@
               bind:value={confirmPassword}
               required
             />
+          </Field>
+
+          <Field>
+            <input type="hidden" name="two_factor" value={twoFactor} />
+            <div class="flex items-center gap-2">
+              <Switch
+                id="two_factor"
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    twoFactor = "email";
+                  } else {
+                    twoFactor = "none";
+                  }
+                }}
+              ></Switch>
+              <FieldLabel for="two_factor"
+                >Require Two-Factor Authentication</FieldLabel
+              >
+            </div>
           </Field>
         {/if}
 
