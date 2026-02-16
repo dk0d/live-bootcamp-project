@@ -6,7 +6,7 @@ use serde::Serialize;
 use tracing::instrument;
 use utoipa::ToSchema;
 
-use crate::domain::{Email, Password, TwoFactorMethod, User, UserStore};
+use crate::domain::{Email, HashedPassword, TwoFactorMethod, User, UserStore};
 use crate::error::AuthApiError;
 use crate::state::AppState;
 use crate::utils::FormOrJson;
@@ -40,22 +40,18 @@ pub enum SignupRequest {
     Passkey { email: String },
 }
 
-impl TryFrom<SignupRequest> for User {
-    type Error = AuthApiError;
-
-    fn try_from(req: SignupRequest) -> Result<Self, AuthApiError> {
-        match req {
-            SignupRequest::EmailPassword {
-                email,
-                password,
-                two_factor,
-            } => {
-                let email: Email = email.try_into()?;
-                let hashed_password: Password = password.try_into()?;
-                Ok(Self::new(email, hashed_password, two_factor))
-            }
-            _ => Err(AuthApiError::MalformedRequest),
+async fn user_from_signup_request(req: SignupRequest) -> Result<User, AuthApiError> {
+    match req {
+        SignupRequest::EmailPassword {
+            email,
+            password,
+            two_factor,
+        } => {
+            let email: Email = email.try_into()?;
+            let hashed_password = HashedPassword::parse(&password).await?;
+            Ok(User::new(email, hashed_password, two_factor))
         }
+        _ => Err(AuthApiError::MalformedRequest),
     }
 }
 
@@ -79,7 +75,7 @@ pub async fn signup_handler(
     FormOrJson(request): FormOrJson<SignupRequest>,
 ) -> Result<impl IntoResponse, AuthApiError> {
     // Placeholder for signup logic
-    let user: User = request.try_into()?;
+    let user: User = user_from_signup_request(request).await?;
     let mut user_store = state.user_store.write().await;
     user_store.add_user(user).await?;
     Ok((

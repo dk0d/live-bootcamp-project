@@ -1,9 +1,10 @@
+use crate::domain::TwoFactorMethod;
+use crate::error::AuthApiError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::domain::TwoFactorMethod;
-use crate::error::AuthApiError;
-use crate::utils::auth::hash_password;
+use super::HashedPassword;
+use super::db::UserRow;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq, ToSchema)]
 pub struct Email(String);
@@ -44,64 +45,6 @@ impl TryFrom<String> for Email {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
-pub struct Password(String);
-
-impl Password {
-    pub fn parse(password: &str) -> Result<Self, AuthApiError> {
-        if password.len() < 8 {
-            return Err(AuthApiError::PasswordTooShort(password.len()));
-        }
-        Ok(Password(password.to_string()))
-    }
-}
-
-impl TryFrom<&str> for Password {
-    type Error = AuthApiError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Password::parse(value)
-    }
-}
-
-impl TryFrom<String> for Password {
-    type Error = AuthApiError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Password::parse(&value)
-    }
-}
-
-impl AsRef<str> for Password {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
-pub struct HashedPassword(String);
-
-impl HashedPassword {
-    pub fn parse(password: &str) -> Result<Self, AuthApiError> {
-        let password = Password::parse(password)?;
-        let hashed = hash_password(password.as_ref())?;
-        Ok(HashedPassword(hashed))
-    }
-}
-
-impl From<Password> for HashedPassword {
-    fn from(password: Password) -> Self {
-        let hashed = hash_password(&password.0).expect("Failed to hash password");
-        HashedPassword(hashed)
-    }
-}
-
-impl AsRef<str> for HashedPassword {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct User {
     pub email: Email,
@@ -109,11 +52,33 @@ pub struct User {
     pub two_factor: TwoFactorMethod,
 }
 
+impl From<UserRow> for User {
+    fn from(value: UserRow) -> Self {
+        Self {
+            // NOTE: feels dangerous to have these expects here
+            email: Email::parse(&value.email).expect("valid email"),
+            password: HashedPassword::parse_password_hash(value.password_hash)
+                .expect("valid hash from db"),
+            two_factor: value.two_factor.try_into().unwrap_or_default(),
+        }
+    }
+}
+
+impl From<User> for UserRow {
+    fn from(value: User) -> Self {
+        Self {
+            email: value.email.as_ref().to_owned(),
+            password_hash: value.password.as_ref().to_owned(),
+            two_factor: value.two_factor.to_string(),
+        }
+    }
+}
+
 impl User {
-    pub fn new(email: Email, password: Password, two_factor: TwoFactorMethod) -> Self {
+    pub fn new(email: Email, password: HashedPassword, two_factor: TwoFactorMethod) -> Self {
         Self {
             email,
-            password: password.into(),
+            password,
             two_factor,
         }
     }
@@ -121,10 +86,11 @@ impl User {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
-    fn test_email_invalid() {
+    fn email_invalid() {
         let cases = vec!["plainaddress", "@no-local-part.com", "Outlook Contact"];
 
         for case in cases {
@@ -134,25 +100,11 @@ mod tests {
     }
 
     #[test]
-    fn test_email_valid() {
+    fn email_valid() {
         let cases = vec!["there@go.com", "hello@joy.net", "what@me.org"];
         for case in cases {
             let result = Email::parse(case);
             assert!(result.is_ok(), "Expected success for case: {}", case);
         }
-    }
-
-    #[test]
-    fn test_password_too_short() {
-        let short_password = "short";
-        let result = Password::parse(short_password);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_password_valid() {
-        let valid_password = "longenoughpassword";
-        let result = Password::parse(valid_password);
-        assert!(result.is_ok());
     }
 }

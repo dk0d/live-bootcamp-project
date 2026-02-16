@@ -117,6 +117,9 @@ impl Default for JwtConfig {
 
 #[derive(serde::Deserialize, Default, Debug, Clone)]
 pub struct Config {
+    #[serde(default = "default_database_url")]
+    pub database_url: Option<String>,
+
     #[serde(default = "ServerConfig::default")]
     pub server: ServerConfig,
 
@@ -134,6 +137,10 @@ pub struct Config {
 
     #[serde(default = "AppConfig::default")]
     pub app: AppConfig,
+}
+
+fn default_database_url() -> Option<String> {
+    None
 }
 
 fn default_allowed_origins() -> Option<Vec<String>> {
@@ -157,9 +164,9 @@ fn default_true() -> bool {
 }
 
 fn default_auth_redirect_url() -> String {
-    return "http://localhost:5173/login/2fa".to_string();
+    "http://localhost:5173/login/2fa".to_string()
 }
 
 fn default_app_url() -> String {
-    return "http://localhost:5173".to_string();
+    "http://localhost:5173".to_string()
 }

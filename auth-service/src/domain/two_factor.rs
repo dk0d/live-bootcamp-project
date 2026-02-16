@@ -14,6 +14,20 @@ pub enum TwoFactorMethod {
     None,
 }
 
+impl TryFrom<String> for TwoFactorMethod {
+    type Error = AuthApiError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        serde_json::from_str(&value).map_err(|e| AuthApiError::InvalidData(format!("{e}")))
+    }
+}
+
+impl std::fmt::Display for TwoFactorMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &serde_json::to_string(&self).unwrap_or_default())
+    }
+}
+
 fn gen_code() -> Result<String, AuthApiError> {
     let mut rng = rand::rng();
     let distribution = Uniform::new(0, 10).map_err(|_| AuthApiError::TwoFactorCodeGenFailed)?;

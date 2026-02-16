@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::domain::{Email, Password, User, UserStore};
 use crate::error::AuthApiError;
-use crate::utils::auth::hash_password;
 
 #[derive(Debug, Clone)]
 pub struct InMemoryUserStore {
@@ -46,16 +45,12 @@ impl UserStore for InMemoryUserStore {
         password: &Password,
     ) -> Result<bool, AuthApiError> {
         match self.users.get(email) {
-            Some(user) => match hash_password(password.as_ref()) {
-                Ok(hashed_password) => {
-                    if user.password.as_ref() == hashed_password {
-                        Ok(true)
-                    } else {
-                        Err(AuthApiError::InvalidCredentials)
-                    }
-                }
-                Err(e) => Err(AuthApiError::UnexpectedError(e.to_string())),
-            },
+            Some(user) => user
+                .password
+                .verify_raw_password(password.as_ref())
+                .await
+                .map(|_| true)
+                .map_err(|_| AuthApiError::Unauthorized),
             None => Err(AuthApiError::UserNotFound),
         }
     }
@@ -63,7 +58,7 @@ impl UserStore for InMemoryUserStore {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::TwoFactorMethod;
+    use crate::domain::{HashedPassword, TwoFactorMethod};
 
     use super::*;
 
@@ -72,7 +67,9 @@ mod tests {
         let mut store = InMemoryUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
-            password: Password::parse("hashed_password").unwrap().into(),
+            password: HashedPassword::parse("password")
+                .await
+                .expect("valid password"),
             two_factor: TwoFactorMethod::None,
         };
         let res = store.add_user(user).await;
@@ -84,7 +81,9 @@ mod tests {
         let mut store = InMemoryUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
-            password: Password::parse("hashed_password").unwrap().into(),
+            password: HashedPassword::parse("password")
+                .await
+                .expect("valid password"),
             two_factor: TwoFactorMethod::None,
         };
         _ = store.add_user(user).await;
@@ -102,7 +101,9 @@ mod tests {
         let mut store = InMemoryUserStore::new();
         let user = User {
             email: "me@you.com".try_into().unwrap(),
-            password: Password::parse("password").unwrap().into(),
+            password: HashedPassword::parse("password")
+                .await
+                .expect("valid password"),
             two_factor: TwoFactorMethod::None,
         };
         _ = store.add_user(user).await;

@@ -29,6 +29,11 @@ services:
     restart: "always" # automatically restart container when server crashes
     ports:
       - "5170:5170" # expose port 3000 so that applications outside the container can connect to it 
+    environment: 
+      LR_DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432/app"
+      LR_JWT__SECRET__TYPE: "rsa"
+      LR_JWT__SECRET__PUB_KEY: "tests/jwt-test-rsa.pub"
+      LR_JWT__SECRET__PRIV_KEY: "tests/jwt-test-rsa.pem"
       
   db:
     image: postgres:18-alpine
@@ -42,12 +47,18 @@ services:
       retries: 5
       timeout: 5s
     volumes:
-      - .docker-volumes:/var/lib/postgresql/18/docker
+      - postgres_data:/var/lib/postgresql/18/docker
     environment:
-      POSTGRES_USER: app
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: app
       POSTGRES_DB: app
 
+  # New!
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - "6379:6379"
       
   # used for local dev testing of emails from the server
   mailpit:
@@ -64,3 +75,6 @@ services:
       MP_DATABASE: /data/mailpit.db
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      
+volumes:
+  postgres_data:

@@ -8,15 +8,9 @@ use tokio::sync::OnceCell;
 
 use crate::config::{JwtConfig, JwtKeySecret};
 use crate::domain::{Email, LoginAttemptId};
-use crate::error::AuthApiError;
 use crate::state::AppState;
 use jsonwebtoken::jwk::{JwkSet, KeyAlgorithm};
 
-pub fn hash_password(password: &str) -> Result<String, AuthApiError> {
-    // FIXME: Replace with real hashing logic
-    let hashed = format!("hashed_{}", password);
-    Ok(hashed)
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum GenerateTokenError {
