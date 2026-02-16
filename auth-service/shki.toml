@@ -1,0 +1,44 @@
+root = "./db"
+dialect = "postgres"
+schema = "init.lua"
+
+# relative to `root`
+out = "./migrations"
+
+breakpoints = true
+verbose = true
+timeout_seconds = 2
+database_url = "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
+
+[migrations]
+table = "__shki_migrations"
+prefix = "index"
+generate_down = true
+
+[introspect]
+casing = "preserve"
+
+[codegen]
+mode = "singlemodule"
+# relative to `root`
+output = "../src/domain/db"
+
+struct_derives = [
+    "Debug",
+    "Clone",
+    "sqlx::FromRow",
+    "serde::Deserialize",
+    'serde::Serialize',
+]
+struct_attributes = []
+struct_suffix = "Row"
+enum_derives = ["Debug", "Clone", "PartialEq", "sqlx::Type"]
+enum_attributes = []
+include_tables = []
+exclude_tables = []
+
+[codegen.struct_renames]
+
+[codegen.enum_renames]
+
+[codegen.type_overrides]

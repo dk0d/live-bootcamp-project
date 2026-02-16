@@ -1,0 +1,45 @@
+{
+  "version": "1",
+  "id": "0ee3edfc-30c1-4b9b-b77f-179fb20497f9",
+  "dialect": "postgres",
+  "created_at": "2026-02-15T20:36:50.163321Z",
+  "tables": {
+    "user": {
+      "name": "user",
+      "columns": {
+        "email": {
+          "name": "email",
+          "data_type": "TEXT",
+          "nullable": false,
+          "primary_key": true,
+          "unique": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "data_type": "TEXT",
+          "nullable": false,
+          "primary_key": false,
+          "unique": false
+        },
+        "two_factor": {
+          "name": "two_factor",
+          "data_type": "TEXT",
+          "nullable": false,
+          "default": "'none'",
+          "primary_key": false,
+          "unique": false
+        }
+      },
+      "constraints": [],
+      "indexes": {},
+      "comment": "User accounts"
+    }
+  },
+  "enums": {},
+  "sequences": {},
+  "views": {},
+  "schemas": [
+    "public"
+  ],
+  "extensions": []
+}
