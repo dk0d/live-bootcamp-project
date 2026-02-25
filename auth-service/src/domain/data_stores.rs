@@ -9,33 +9,47 @@ pub trait UserStore: Send + Sync + std::fmt::Debug {
         &self,
         email: &Email,
         password: &Password,
-    ) -> Result<bool, AuthApiError>;
+    ) -> Result<bool, AuthApiError> {
+        match self.get_user(email).await {
+            Ok(user) => user
+                .password
+                .verify_raw_password(password.as_ref())
+                .await
+                .map(|_| true)
+                .map_err(|_| AuthApiError::Unauthorized),
+            Err(_) => Err(AuthApiError::UserNotFound),
+        }
+    }
 }
 
 pub trait BannedTokenStore: Send + Sync + std::fmt::Debug {
-    fn ban_token(&mut self, token: impl ToString) -> Result<(), AuthApiError>;
-    fn unban_token(&mut self, token: impl ToString) -> Result<(), AuthApiError>;
-    fn is_token_banned(&self, token: impl ToString) -> bool;
+    fn ban_token(&mut self, token: &str) -> Result<(), AuthApiError>;
+    fn unban_token(&mut self, token: &str) -> Result<(), AuthApiError>;
+    fn is_token_banned(&self, token: &str) -> bool;
 }
 
+#[async_trait::async_trait]
 pub trait TwoFactorCodeStore: Send + Sync + std::fmt::Debug {
-    fn new_login_attempt(
+    async fn new_login_attempt(
         &mut self,
         email: &Email,
         two_factor_method: &TwoFactorMethod,
     ) -> Result<(LoginAttemptId, TwoFactorCode), AuthApiError>;
 
-    fn get_code(&self, email: &Email) -> Result<(LoginAttemptId, TwoFactorCode), AuthApiError>;
+    async fn get_code(
+        &self,
+        email: &Email,
+    ) -> Result<(LoginAttemptId, TwoFactorCode), AuthApiError>;
 
-    fn remove_code(&mut self, email: &Email) -> Result<(), AuthApiError>;
+    async fn remove_code(&mut self, email: &Email) -> Result<(), AuthApiError>;
 
-    fn verify_code(
+    async fn verify_code(
         &self,
         email: &Email,
         attempt_id: &LoginAttemptId,
         code: &TwoFactorCode,
     ) -> Result<bool, AuthApiError> {
-        let (id, stored_code) = self.get_code(email)?;
+        let (id, stored_code) = self.get_code(email).await?;
         Ok(stored_code == *code && id == *attempt_id)
     }
 }

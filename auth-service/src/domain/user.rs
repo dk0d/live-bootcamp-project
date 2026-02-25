@@ -56,6 +56,8 @@ impl From<UserRow> for User {
     fn from(value: UserRow) -> Self {
         Self {
             // NOTE: feels dangerous to have these expects here
+            // but for now - assume we only could write to the DB via `User`
+            // so we should be able to get valid data out
             email: Email::parse(&value.email).expect("valid email"),
             password: HashedPassword::parse_password_hash(value.password_hash)
                 .expect("valid hash from db"),

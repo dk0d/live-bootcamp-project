@@ -17,7 +17,7 @@ async fn main() -> anyhow::Result<()> {
     // Env::prefixed("LR_").iter().for_each(|(k, v)| {
     //     println!("{}: {}", k, v);
     // });
-    dbg!(&config);
+    // dbg!(&config);
     logging::init(&config)?;
     let app = Application::build(&config).await?;
     app.run().await?;

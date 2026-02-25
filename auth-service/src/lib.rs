@@ -1,4 +1,5 @@
 pub mod config;
+pub mod database;
 pub mod domain;
 pub mod error;
 pub mod logging;
@@ -25,9 +26,12 @@ use utoipa_scalar::{Scalar, Servable};
 
 use crate::routes::build_app_router;
 
+use self::database::Database;
+use self::domain::UserStore;
 use self::services::banned_token::mem::InMemoryBannedTokenStore;
 use self::services::email::Emailer;
 use self::services::two_factor_code::mem::InMemoryTwoFactorCodeStore;
+use self::services::user_store::PostgresUserStore;
 use self::services::user_store::mem::InMemoryUserStore;
 
 #[derive(Debug)]
@@ -37,6 +41,26 @@ pub struct Application {
 }
 
 impl Application {
+    pub async fn build_app_state(config: &config::Config) -> anyhow::Result<state::AppState> {
+        let db = Database::connect(config).await;
+
+        if db.is_err() {
+            tracing::warn!("Unable to connect to database, falling back to in memory store");
+        }
+
+        let user_store: Arc<RwLock<dyn UserStore>> = if let Ok(db) = &db {
+            Arc::new(RwLock::new(PostgresUserStore::new(db.pool().clone())))
+        } else {
+            Arc::new(RwLock::new(InMemoryUserStore::new()))
+        };
+        let banned_tokens = Arc::new(RwLock::new(InMemoryBannedTokenStore::new()));
+        let two_factor_codes = Arc::new(RwLock::new(InMemoryTwoFactorCodeStore::default()));
+        let emailer = Arc::new(RwLock::new(Emailer::new(&config.email)));
+        let state =
+            state::AppState::new(config, user_store, banned_tokens, two_factor_codes, emailer);
+        Ok(state)
+    }
+
     /// Build the main application router with middleware and documentation.
     ///
     /// This may be useful when using axum_test to map per test routers.
@@ -46,14 +70,12 @@ impl Application {
     ///
     /// Returns:
     /// - `Router`: The constructed application router.
-    pub async fn build_router(config: &config::Config) -> anyhow::Result<Router> {
+    pub async fn build_router(
+        config: &config::Config,
+        state: state::AppState,
+    ) -> anyhow::Result<Router> {
         let assets_dir =
             ServeDir::new("assets").not_found_service(ServeFile::new("assets/404.html"));
-
-        let user_store = Arc::new(RwLock::new(InMemoryUserStore::new()));
-        let banned_tokens = Arc::new(RwLock::new(InMemoryBannedTokenStore::new()));
-        let two_factor_codes = Arc::new(RwLock::new(InMemoryTwoFactorCodeStore::default()));
-        let emailer = Arc::new(RwLock::new(Emailer::new(&config.email)));
 
         let mut allowed_origins = vec![
             format!("http://localhost:{}", config.server.port),
@@ -80,8 +102,6 @@ impl Application {
             )
             .allow_credentials(true);
 
-        let state =
-            state::AppState::new(config, user_store, banned_tokens, two_factor_codes, emailer);
         let (router, api) = build_app_router(state).split_for_parts();
         let router = router
             .fallback_service(assets_dir)
@@ -119,7 +139,8 @@ impl Application {
     /// Returns:
     /// - `Application`: The constructed application instance.
     pub async fn build(config: &config::Config) -> anyhow::Result<Self> {
-        let router = Application::build_router(config).await?;
+        let state = Application::build_app_state(config).await?;
+        let router = Application::build_router(config, state).await?;
         // Here we should use ip 0.0.0.0 so the service is listening on all the configured network interfaces.
         // This is needed for Docker to work, which we will add later on.
         // See: https://stackoverflow.com/questions/39525820/docker-port-forwarding-not-working

@@ -8,4 +8,5 @@ pub mod email_client;
 pub use email_client::*;
 pub mod password;
 pub use password::*;
-mod db;
+pub mod db;
+pub use db::*;

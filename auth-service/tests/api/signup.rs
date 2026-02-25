@@ -1,4 +1,4 @@
-use crate::helpers::get_test_app;
+use crate::common::get_test_app;
 
 #[tokio::test]
 async fn test_signup_return_201_input_valid() {

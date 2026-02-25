@@ -105,8 +105,8 @@ impl AsRef<str> for HashedPassword {
         &self.0
     }
 }
-#[cfg(test)]
 
+#[cfg(test)]
 mod tests {
     use super::*;
     use argon2::{

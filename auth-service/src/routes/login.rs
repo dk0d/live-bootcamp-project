@@ -9,12 +9,11 @@ use tracing::instrument;
 use utoipa::ToSchema;
 
 use crate::domain::{
-    Email, EmailClient, LoginAttemptId, LoginTemplate, Password, TwoFactorCode, TwoFactorCodeStore,
-    TwoFactorMethod, UserStore,
+    Email, EmailClient, EmailTemplate, LoginAttemptId, Password, TwoFactorCode, TwoFactorCodeStore,
+    TwoFactorEmailData, TwoFactorMethod,
 };
 use crate::error::AuthApiError;
 use crate::state::AppState;
-use askama::Template;
 
 use crate::utils::FormOrJson;
 use crate::utils::auth::{generate_2fa_token, generate_auth_cookie};
@@ -102,14 +101,13 @@ async fn handle_2fa(
                 &state.config.app.two_factor_redirect_url, mfa_payload,
             );
             let emailer = &state.email_client.read().await;
-            let template = LoginTemplate {
-                email: email.as_ref(),
-                code: code.as_ref(),
-                site_url: &state.config.app.url,
-                redirect_url: &redirect_url,
-            };
-            let content = template.render().expect("valid html");
-            if let Err(e) = emailer.send_email(email, "Confirm Login", &content).await {
+            let template = EmailTemplate::TwoFactor(TwoFactorEmailData {
+                email: email.as_ref().to_string(),
+                code: code.as_ref().to_string(),
+                site_url: state.config.app.url.clone(),
+                redirect_url: redirect_url.clone(),
+            });
+            if let Err(e) = emailer.send_email(email, "Confirm Login", &template).await {
                 tracing::warn!("Unable to send mail: {}", &e);
                 // FIXME: what should happen if email failes to send in two_factor case
                 // - need retry, and/or ability to trigger resend emails
@@ -178,7 +176,8 @@ async fn login(state: &AppState, body: &LoginRequest) -> Result<LoginResult, Aut
 
             if let TwoFactorMethod::Email = user.two_factor {
                 let mut codes = state.two_factor.write().await;
-                let (login_attempt_id, code) = codes.new_login_attempt(&email, &user.two_factor)?;
+                let (login_attempt_id, code) =
+                    codes.new_login_attempt(&email, &user.two_factor).await?;
                 Ok(LoginResult::TwoFactor {
                     email: user.email.clone(),
                     method: user.two_factor,

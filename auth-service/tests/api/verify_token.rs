@@ -1,7 +1,7 @@
 use lgr_auth::domain::Email;
 use lgr_auth::utils::auth::generate_auth_token;
 
-use crate::helpers::get_test_app;
+use crate::common::get_test_app;
 
 #[tokio::test]
 async fn test_verify_token_200() {

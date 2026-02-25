@@ -1,7 +1,7 @@
 use fake::{Fake, faker};
 use reqwest::StatusCode;
 
-use crate::helpers::get_test_app;
+use crate::common::get_test_app;
 
 #[tokio::test]
 async fn test_login_422_if_malformed_credentials() {

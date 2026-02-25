@@ -1,5 +1,5 @@
 mod health;
-mod helpers;
+mod common;
 mod login;
 mod logout;
 mod routes;

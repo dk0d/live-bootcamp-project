@@ -1,4 +1,4 @@
-use crate::helpers::get_test_app;
+use crate::common::get_test_app;
 use cookie::{CookieBuilder, CookieJar};
 use lgr_auth::domain::Email;
 use lgr_auth::utils::auth::generate_auth_cookie;

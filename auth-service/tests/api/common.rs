@@ -1,10 +1,14 @@
 #![allow(dead_code)]
 
+use std::sync::{Arc, Mutex};
+use tokio::sync::RwLock;
+
 use axum::response::IntoResponse;
 use axum_extra::extract::CookieJar;
 use axum_test::{TestRequest, TestResponse};
 use lgr_auth::Application;
 use lgr_auth::config::Config;
+use lgr_auth::domain::{Email, EmailClient, EmailTemplate};
 use tokio::sync::OnceCell;
 
 static APP: OnceCell<TestApp> = OnceCell::const_new();
@@ -14,9 +18,45 @@ pub async fn get_test_app() -> &'static TestApp {
         .await
 }
 
+pub async fn get_test_app_emailer() -> TestApp {
+    TestApp::new(&Config::default()).await
+}
+
 pub struct TestServer {
     pub address: String,
     pub http_client: reqwest::Client,
+}
+
+#[derive(Debug, Clone)]
+pub struct SentEmail {
+    pub to: String,
+    pub subject: String,
+    pub template: EmailTemplate,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CapturedEmails(pub Arc<Mutex<Vec<SentEmail>>>);
+
+#[derive(Debug, Clone)]
+pub struct FakeEmailClient {
+    pub outbox: CapturedEmails,
+}
+
+#[async_trait::async_trait]
+impl EmailClient for FakeEmailClient {
+    async fn send_email(
+        &self,
+        recipient: &Email,
+        subject: &str,
+        template: &EmailTemplate,
+    ) -> Result<(), lgr_auth::error::AuthApiError> {
+        self.outbox.0.lock().unwrap().push(SentEmail {
+            to: recipient.as_ref().to_string(),
+            subject: subject.to_string(),
+            template: template.clone(),
+        });
+        Ok(())
+    }
 }
 
 impl TestServer {
@@ -111,11 +151,22 @@ pub struct TestApp {
     pub jar: CookieJar,
     pub config: Config,
     pub server: axum_test::TestServer,
+    pub emails: CapturedEmails,
 }
 
 impl TestApp {
     pub async fn new(config: &Config) -> Self {
-        let app = Application::build_router(config)
+        let mut state = Application::build_app_state(config)
+            .await
+            .expect("valid state");
+
+        let emails = CapturedEmails(Arc::new(Mutex::new(Vec::new())));
+
+        state.email_client = Arc::new(RwLock::new(FakeEmailClient {
+            outbox: emails.clone(),
+        }));
+
+        let app = Application::build_router(config, state)
             .await
             .expect("Failed to build application.");
         let server = axum_test::TestServer::new(app).expect("Failed to start test server.");
@@ -123,6 +174,7 @@ impl TestApp {
             jar: CookieJar::new(),
             config: config.clone(),
             server,
+            emails,
         }
     }
 

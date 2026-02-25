@@ -1,15 +1,14 @@
 use crate::config::Config;
-use crate::services::banned_token::mem::InMemoryBannedTokenStore;
-use crate::services::email::Emailer;
-use crate::services::two_factor_code::mem::InMemoryTwoFactorCodeStore;
-use crate::services::user_store::InMemoryUserStore;
+use crate::domain::{BannedTokenStore, EmailClient, TwoFactorCodeStore, UserStore};
+use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-pub type UserStoreType = Arc<RwLock<InMemoryUserStore>>;
-pub type BannedTokenStoreType = Arc<RwLock<InMemoryBannedTokenStore>>;
-pub type TwoFactorCodeStoreType = Arc<RwLock<InMemoryTwoFactorCodeStore>>;
-pub type EmailClientType = Arc<RwLock<Emailer>>;
+pub type UserStoreType = Arc<RwLock<dyn UserStore>>;
+pub type BannedTokenStoreType = Arc<RwLock<dyn BannedTokenStore>>;
+pub type TwoFactorCodeStoreType = Arc<RwLock<dyn TwoFactorCodeStore>>;
+pub type EmailClientType = Arc<RwLock<dyn EmailClient>>;
+pub type PoolType = Arc<RwLock<PgPool>>;
 
 #[derive(Clone, Debug)]
 pub struct AppState {

@@ -1,4 +1,4 @@
-use crate::helpers::get_test_app;
+use crate::common::get_test_app;
 use serde_json::Value;
 
 #[tokio::test]
