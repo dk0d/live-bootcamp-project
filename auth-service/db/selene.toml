@@ -1,9 +1,0 @@
-# Selene linter configuration for shki
-# https://kampfkarren.github.io/selene/
-
-std = "shki"
-
-[lints]
-# Customize lint levels as needed
-# empty_if = "warn"
-# unused_variable = "warn"
