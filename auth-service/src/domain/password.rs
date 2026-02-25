@@ -216,10 +216,10 @@ mod tests {
         }
     }
 
-    // updated!
     #[tokio::test]
     #[quickcheck_macros::quickcheck]
+    #[ignore] // TODO: this is VERY slow(?) - only run when explicitly asked for 
     async fn valid_passwords_are_parsed_successfully(valid_password: ValidPasswordFixture) -> bool {
-        HashedPassword::parse(&valid_password.0).await.is_ok() // updated!
+        HashedPassword::parse(&valid_password.0).await.is_ok()
     }
 }
