@@ -1,0 +1,50 @@
+{
+  "version": "1",
+  "id": "eeb881ae-855c-4efb-a082-8124b6fbdb19",
+  "prev_id": "a089836b-f849-4275-800a-ea0800f56ecc",
+  "dialect": "postgres",
+  "created_at": "2026-02-25T03:46:00.316413Z",
+  "migration": {
+    "name": "0001_remove-2fa-for-redis",
+    "checksum": "15c6386b69f2a48fbbc19ae68edf7c7436d26b36a362dd7fd46537123ce98e99"
+  },
+  "tables": {
+    "user": {
+      "name": "user",
+      "columns": {
+        "email": {
+          "name": "email",
+          "data_type": "TEXT",
+          "nullable": false,
+          "primary_key": true,
+          "unique": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "data_type": "TEXT",
+          "nullable": false,
+          "primary_key": false,
+          "unique": false
+        },
+        "two_factor": {
+          "name": "two_factor",
+          "data_type": "TEXT",
+          "nullable": false,
+          "default": "'none'",
+          "primary_key": false,
+          "unique": false
+        }
+      },
+      "constraints": [],
+      "indexes": {},
+      "comment": "User accounts"
+    }
+  },
+  "enums": {},
+  "sequences": {},
+  "views": {},
+  "schemas": [
+    "public"
+  ],
+  "extensions": []
+}
