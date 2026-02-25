@@ -23,6 +23,12 @@ pub enum AuthApiError {
     #[error("Unauthorized")]
     Unauthorized,
 
+    #[error("[DB] {0}")]
+    Db(sqlx::Error),
+
+    #[error("[CONFIG] {0}")]
+    Config(String),
+
     #[error("Invalid format: {0}")]
     InvalidData(String),
 
@@ -58,6 +64,9 @@ pub enum AuthApiError {
     #[error("Failed to generate two factor code")]
     TwoFactorCodeGenFailed,
 
+    #[error("Failed to generate two factor code")]
+    TwoFactorCodeGenFailedToSave,
+
     #[error("Invalid login attempt id")]
     InvalidLoginAttemptId,
 
@@ -92,6 +101,7 @@ impl Serialize for AuthApiError {
 impl StatusCoded for AuthApiError {
     fn status_code(&self) -> axum::http::StatusCode {
         match self {
+            AuthApiError::Db(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AuthApiError::InvalidCredentials => StatusCode::BAD_REQUEST,
             AuthApiError::PasswordTooShort(_) => StatusCode::BAD_REQUEST,
             AuthApiError::InvalidEmail(_) => StatusCode::BAD_REQUEST,
@@ -109,6 +119,8 @@ impl StatusCoded for AuthApiError {
             AuthApiError::TwoFactorCodeGenFailed => StatusCode::INTERNAL_SERVER_ERROR,
             AuthApiError::InvalidLoginAttemptId => StatusCode::BAD_REQUEST,
             AuthApiError::EmailSendError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthApiError::Config(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthApiError::TwoFactorCodeGenFailedToSave => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
