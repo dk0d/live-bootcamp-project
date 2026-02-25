@@ -1,4 +1,4 @@
-root = "./db"
+root = "./schema"
 dialect = "postgres"
 schema = "init.lua"
 
@@ -6,13 +6,18 @@ schema = "init.lua"
 out = "./migrations"
 
 breakpoints = true
+
 verbose = true
+
 timeout_seconds = 2
-database_url = "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
+
+database_url = "postgres://postgres:app@localhost:8432/app"
 
 [migrations]
 table = "__shki_migrations"
+
 prefix = "index"
+
 generate_down = true
 
 [introspect]
@@ -31,7 +36,9 @@ struct_derives = [
     'serde::Serialize',
 ]
 struct_attributes = []
+
 struct_suffix = "Row"
+
 enum_derives = ["Debug", "Clone", "PartialEq", "sqlx::Type"]
 enum_attributes = []
 include_tables = []
