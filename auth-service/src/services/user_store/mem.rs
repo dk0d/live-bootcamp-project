@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::{Email, Password, User, UserStore};
+use crate::domain::{Email, User, UserStore};
 use crate::error::AuthApiError;
 
 #[derive(Debug, Clone)]
@@ -38,27 +38,11 @@ impl UserStore for InMemoryUserStore {
             None => Err(AuthApiError::UserNotFound),
         }
     }
-
-    async fn validate_credentials(
-        &self,
-        email: &Email,
-        password: &Password,
-    ) -> Result<bool, AuthApiError> {
-        match self.users.get(email) {
-            Some(user) => user
-                .password
-                .verify_raw_password(password.as_ref())
-                .await
-                .map(|_| true)
-                .map_err(|_| AuthApiError::Unauthorized),
-            None => Err(AuthApiError::UserNotFound),
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{HashedPassword, TwoFactorMethod};
+    use crate::domain::{HashedPassword, Password, TwoFactorMethod};
 
     use super::*;
 

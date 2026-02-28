@@ -1,6 +1,7 @@
-use crate::domain::{Email, EmailClient, Password};
+use crate::domain::{Email, EmailClient, EmailTemplate, Password};
 use crate::error::AuthApiError;
 
+use askama::Template;
 use lettre::message::{Mailbox, header::ContentType};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
@@ -44,8 +45,9 @@ impl EmailClient for Emailer {
         &self,
         recipient: &Email,
         subject: &str,
-        content: &str,
+        template: &EmailTemplate,
     ) -> Result<(), AuthApiError> {
+        let content = template.render();
         let email = Message::builder()
             .from(Mailbox::new(
                 Some("LGRAuth".to_owned()),

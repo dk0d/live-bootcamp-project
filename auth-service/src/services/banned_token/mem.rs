@@ -20,18 +20,18 @@ impl InMemoryBannedTokenStore {
 }
 
 impl BannedTokenStore for InMemoryBannedTokenStore {
-    fn ban_token(&mut self, token: impl ToString) -> Result<(), AuthApiError> {
+    fn ban_token(&mut self, token: &str) -> Result<(), AuthApiError> {
         self.tokens.insert(token.to_string());
         Ok(())
     }
 
-    fn unban_token(&mut self, token: impl ToString) -> Result<(), AuthApiError> {
-        self.tokens.remove(&token.to_string());
+    fn unban_token(&mut self, token: &str) -> Result<(), AuthApiError> {
+        self.tokens.remove(token);
         Ok(())
     }
 
-    fn is_token_banned(&self, token: impl ToString) -> bool {
-        self.tokens.contains(&token.to_string())
+    fn is_token_banned(&self, token: &str) -> bool {
+        self.tokens.contains(token)
     }
 }
 
