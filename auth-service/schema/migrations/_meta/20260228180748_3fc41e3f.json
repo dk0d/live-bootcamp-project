@@ -1,11 +1,11 @@
 {
   "version": "1",
-  "id": "a089836b-f849-4275-800a-ea0800f56ecc",
+  "id": "3fc41e3f-d9b5-4124-933d-f4d4688f448d",
   "dialect": "postgres",
-  "created_at": "2026-02-25T03:45:42.392910Z",
+  "created_at": "2026-02-28T18:07:48.725058Z",
   "migration": {
     "name": "0000_init",
-    "checksum": "ea35247d388d98479fbdbb53375cc8c33c1aaeab6ee227a6c8e0dbbce47d2342"
+    "checksum": "75190d25ee2a75db77ddf62dadd59d862eaae4976b3d6a515aee5f78ae59aedc"
   },
   "tables": {
     "user": {
@@ -37,36 +37,6 @@
       "constraints": [],
       "indexes": {},
       "comment": "User accounts"
-    },
-    "two_factor": {
-      "name": "two_factor",
-      "columns": {
-        "email": {
-          "name": "email",
-          "data_type": "TEXT",
-          "nullable": false,
-          "primary_key": true,
-          "unique": false
-        },
-        "id": {
-          "name": "id",
-          "data_type": "UUID",
-          "nullable": false,
-          "default": "uuidv7()",
-          "primary_key": false,
-          "unique": false
-        },
-        "code": {
-          "name": "code",
-          "data_type": "TEXT",
-          "nullable": false,
-          "primary_key": false,
-          "unique": false
-        }
-      },
-      "constraints": [],
-      "indexes": {},
-      "comment": "2FA Codes"
     }
   },
   "enums": {},
