@@ -3,10 +3,10 @@
 //! Provides structured logging with optional OpenTelemetry integration.
 
 use tracing_subscriber::{
+    EnvFilter,
     fmt::{self, format::FmtSpan},
     layer::SubscriberExt,
     util::SubscriberInitExt,
-    EnvFilter,
 };
 
 use crate::config::{Config, ServerEnv};
@@ -31,7 +31,7 @@ pub fn init(config: &Config) -> anyhow::Result<()> {
 }
 
 /// Initialize telemetry with OpenTelemetry export
-fn init_with_otel(config: &Config, env_filter: EnvFilter) -> anyhow::Result<()> {
+fn init_with_otel(_config: &Config, _env_filter: EnvFilter) -> anyhow::Result<()> {
     todo!();
 }
 

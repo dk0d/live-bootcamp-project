@@ -16,7 +16,7 @@ async fn logout(state: &AppState, jar: CookieJar) -> Result<CookieJar, AuthApiEr
         .await
         .map_err(|_| AuthApiError::InvalidToken)?;
     let mut banned = state.banned_tokens.write().await;
-    banned.ban_token(token)?;
+    banned.ban_token(&token).await?;
     Ok(jar.remove(Cookie::from(state.config.jwt.cookie_name.clone())))
 }
 

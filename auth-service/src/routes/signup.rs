@@ -11,9 +11,9 @@ use crate::error::AuthApiError;
 use crate::state::AppState;
 use crate::utils::FormOrJson;
 
-fn default_false() -> bool {
-    false
-}
+// fn default_false() -> bool {
+//     false
+// }
 
 #[derive(serde::Deserialize, Serialize, Debug, ToSchema)]
 #[serde(tag = "method", rename_all = "snake_case")]

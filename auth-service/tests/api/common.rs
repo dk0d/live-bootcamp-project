@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use lgr_auth::database::Database;
+use lgr_auth::state::AppState;
 use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;
 
@@ -220,5 +222,15 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.server.post("/verify-token").json(body)
+    }
+}
+
+/// Runs schema migrations defined by shki output
+pub async fn configure_db(config: &Config) {
+    if let Ok(db) = Database::connect(config).await {
+        sqlx::migrate!("schema/migrations")
+            .run(db.pool())
+            .await
+            .expect("Failed to migrate DB");
     }
 }

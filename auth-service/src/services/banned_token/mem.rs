@@ -19,18 +19,19 @@ impl InMemoryBannedTokenStore {
     }
 }
 
+#[async_trait::async_trait]
 impl BannedTokenStore for InMemoryBannedTokenStore {
-    fn ban_token(&mut self, token: &str) -> Result<(), AuthApiError> {
+    async fn ban_token(&mut self, token: &str) -> Result<(), AuthApiError> {
         self.tokens.insert(token.to_string());
         Ok(())
     }
 
-    fn unban_token(&mut self, token: &str) -> Result<(), AuthApiError> {
+    async fn unban_token(&mut self, token: &str) -> Result<(), AuthApiError> {
         self.tokens.remove(token);
         Ok(())
     }
 
-    fn is_token_banned(&self, token: &str) -> bool {
+    async fn is_token_banned(&self, token: &str) -> bool {
         self.tokens.contains(token)
     }
 }
@@ -39,17 +40,17 @@ impl BannedTokenStore for InMemoryBannedTokenStore {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_ban_unban_token() {
+    #[tokio::test]
+    async fn test_ban_unban_token() {
         let mut store = InMemoryBannedTokenStore::new();
         let token = "test_token";
 
-        assert!(!store.is_token_banned(token));
+        assert!(!store.is_token_banned(token).await);
 
-        store.ban_token(token).unwrap();
-        assert!(store.is_token_banned(token));
+        store.ban_token(token).await.unwrap();
+        assert!(store.is_token_banned(token).await);
 
-        store.unban_token(token).unwrap();
-        assert!(!store.is_token_banned(token));
+        store.unban_token(token).await.unwrap();
+        assert!(!store.is_token_banned(token).await);
     }
 }

@@ -22,10 +22,11 @@ pub trait UserStore: Send + Sync + std::fmt::Debug {
     }
 }
 
+#[async_trait::async_trait]
 pub trait BannedTokenStore: Send + Sync + std::fmt::Debug {
-    fn ban_token(&mut self, token: &str) -> Result<(), AuthApiError>;
-    fn unban_token(&mut self, token: &str) -> Result<(), AuthApiError>;
-    fn is_token_banned(&self, token: &str) -> bool;
+    async fn ban_token(&mut self, token: &str) -> Result<(), AuthApiError>;
+    async fn unban_token(&mut self, token: &str) -> Result<(), AuthApiError>;
+    async fn is_token_banned(&self, token: &str) -> bool;
 }
 
 #[async_trait::async_trait]

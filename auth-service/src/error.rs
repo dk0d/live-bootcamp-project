@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use redis::RedisError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
 
@@ -25,6 +26,9 @@ pub enum AuthApiError {
 
     #[error("[DB] {0}")]
     Db(sqlx::Error),
+
+    #[error("[REDIS] {0}")]
+    Redis(#[from] RedisError),
 
     #[error("[CONFIG] {0}")]
     Config(String),
@@ -84,6 +88,9 @@ pub enum AuthApiError {
 
     #[error("Unexpected error: {0}")]
     UnexpectedError(String),
+
+    #[error("Serialization error: {0}")]
+    SerializationError(String),
 }
 
 impl Serialize for AuthApiError {
@@ -120,7 +127,9 @@ impl StatusCoded for AuthApiError {
             AuthApiError::InvalidLoginAttemptId => StatusCode::BAD_REQUEST,
             AuthApiError::EmailSendError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AuthApiError::Config(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthApiError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AuthApiError::TwoFactorCodeGenFailedToSave => StatusCode::INTERNAL_SERVER_ERROR,
+            AuthApiError::SerializationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

@@ -1,4 +1,3 @@
-use crate::domain::BannedTokenStore;
 use crate::error::AuthApiError;
 use crate::state::AppState;
 use crate::utils::auth::{Claims, validate_token};
@@ -27,7 +26,7 @@ pub async fn verify_token_handler(
 ) -> Result<impl IntoResponse, AuthApiError> {
     let banned = state.banned_tokens.read().await;
 
-    if banned.is_token_banned(&body.token) {
+    if banned.is_token_banned(&body.token).await {
         return Err(AuthApiError::Unauthorized);
     }
 

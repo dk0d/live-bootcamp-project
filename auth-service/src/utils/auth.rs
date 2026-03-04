@@ -11,7 +11,6 @@ use crate::domain::{Email, LoginAttemptId};
 use crate::state::AppState;
 use jsonwebtoken::jwk::{JwkSet, KeyAlgorithm};
 
-
 #[derive(Debug, thiserror::Error)]
 pub enum GenerateTokenError {
     #[error("JWT Encoding Error: {0}")]
@@ -43,7 +42,7 @@ pub struct Claims {
 /// The exp claim is used to ensure the token is only valid for a short period of time (e.g. 15 minutes)
 #[derive(serde::Serialize, Deserialize, Debug)]
 pub struct TwoFAClaims {
-    sub: LoginAttemptId,
+    pub sub: LoginAttemptId,
     exp: usize,
     email: Email,
 }

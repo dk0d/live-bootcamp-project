@@ -115,10 +115,69 @@ impl Default for JwtConfig {
     }
 }
 
+#[derive(serde::Deserialize, Debug, Clone)]
+pub struct DbConfig {
+    pub min_connections: u32,
+    pub max_connections: u32,
+}
+
+impl Default for DbConfig {
+    fn default() -> Self {
+        Self {
+            min_connections: 5,
+            max_connections: 10,
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Debug, Clone)]
+pub struct RedisConfig {
+    #[serde(default = "default_redis_host")]
+    pub host: Option<String>,
+
+    #[serde(default = "default_redis_port")]
+    pub port: Option<String>,
+
+    #[serde(default = "default_redis_ttl")]
+    pub ttl_ban: u64,
+
+    #[serde(default = "default_redis_ttl")]
+    pub ttl_2fa: u64,
+}
+
+fn default_redis_ttl() -> u64 {
+    600
+}
+
+fn default_redis_host() -> Option<String> {
+    Some("127.0.0.1".to_string())
+}
+
+fn default_redis_port() -> Option<String> {
+    Some("6379".to_string())
+}
+
+impl Default for RedisConfig {
+    fn default() -> Self {
+        Self {
+            host: default_redis_host(),
+            port: default_redis_port(),
+            ttl_ban: default_redis_ttl(),
+            ttl_2fa: default_redis_ttl(),
+        }
+    }
+}
+
 #[derive(serde::Deserialize, Default, Debug, Clone)]
 pub struct Config {
     #[serde(default = "default_database_url")]
     pub database_url: Option<String>,
+
+    #[serde(default = "DbConfig::default")]
+    pub db: DbConfig,
+
+    #[serde(default = "RedisConfig::default")]
+    pub redis: RedisConfig,
 
     #[serde(default = "ServerConfig::default")]
     pub server: ServerConfig,
@@ -159,9 +218,9 @@ fn default_false() -> bool {
     false
 }
 
-fn default_true() -> bool {
-    true
-}
+// fn default_true() -> bool {
+//     true
+// }
 
 fn default_auth_redirect_url() -> String {
     "http://localhost:5173/login/2fa".to_string()

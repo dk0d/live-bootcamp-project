@@ -35,6 +35,7 @@ pub async fn verify_2fa(state: &AppState, body: Verify2FARequest) -> Result<Emai
         .map_err(|_| AuthApiError::Unauthorized)?;
     if !two_factor
         .verify_code(&email, &attempt_id, &code)
+        .await
         .unwrap_or(false)
     {
         return Err(AuthApiError::Unauthorized);

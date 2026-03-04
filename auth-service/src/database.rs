@@ -20,7 +20,7 @@ impl Database {
         let pool = PgPoolOptions::new()
             .max_connections(config.db.max_connections)
             .min_connections(config.db.min_connections)
-            .connect(&url)
+            .connect(url)
             .await?;
 
         Ok(Self { pool })

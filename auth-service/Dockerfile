@@ -27,4 +27,5 @@ WORKDIR /app
 COPY --from=builder /app/default.toml /app/default.toml
 COPY --from=builder /app/target/release/lgr_auth /usr/local/bin
 COPY --from=builder /app/assets /app/assets
+ENV LR_REDIS__HOST=redis
 ENTRYPOINT ["/usr/local/bin/lgr_auth"]
