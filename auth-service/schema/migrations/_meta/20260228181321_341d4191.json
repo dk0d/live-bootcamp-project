@@ -1,8 +1,8 @@
 {
   "version": "1",
-  "id": "3fc41e3f-d9b5-4124-933d-f4d4688f448d",
+  "id": "341d4191-3c9d-441e-8ef0-8e477d8beda6",
   "dialect": "postgres",
-  "created_at": "2026-02-28T18:07:48.725058Z",
+  "created_at": "2026-02-28T18:13:21.934885Z",
   "migration": {
     "name": "0000_init",
     "checksum": "75190d25ee2a75db77ddf62dadd59d862eaae4976b3d6a515aee5f78ae59aedc"
@@ -10,6 +10,7 @@
   "tables": {
     "user": {
       "name": "user",
+      "schema": "public",
       "columns": {
         "email": {
           "name": "email",
